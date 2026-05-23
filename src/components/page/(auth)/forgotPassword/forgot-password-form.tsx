@@ -51,7 +51,7 @@ export function ForgotPasswordForm({
             <BackButton />
           </span>
           <figure className="flex justify-center pb-4 h-24">
-            <Image src={"/logo.svg"} alt="logo" width={180} height={100} />
+            <Image src={"/logo.png"} alt="logo" width={180} height={100} className="object-contain" />
           </figure>
           <CardTitle className="text-2xl">Forgot password ?</CardTitle>
           <CardDescription className="pt-2 text-primary-foreground">

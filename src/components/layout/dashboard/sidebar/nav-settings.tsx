@@ -2,7 +2,6 @@
 
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -24,11 +23,7 @@ export function NavSettings({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden gap-4">
-      <SidebarGroupLabel className="flex items-center gap-2 text-zinc-400">
-        <span>System Setting</span>{" "}
-        <span className="flex-1 bg-gray-200 h-0.5"></span>
-      </SidebarGroupLabel>
-      <SidebarMenu>
+      <SidebarMenu className="gap-2 flex flex-col">
         {settings.map((item) => {
           const isActive = item.url === pathname;
 
@@ -37,16 +32,15 @@ export function NavSettings({
               <SidebarMenuItem>
                 <SidebarMenuButton
                   tooltip={item.name}
-                  className={`${
+                  className={`flex w-full items-center gap-3 py-5 px-4 transition-all duration-300 font-semibold text-sm border-l-[3px] ${
                     isActive
-                      ? "bg-primary text-white hover:bg-primary hover:text-white active:bg-primary-foreground active:text-white"
-                      : ""
+                      ? "bg-primary/5 text-primary border-primary font-bold"
+                      : "text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/30"
                   }`}
                 >
                   {item.icon && (
-                    <span className="icon">
-                      {/* Pass 'fill' based on active state */}
-                      {item.icon && <item.icon />}
+                    <span className="shrink-0">
+                      {item.icon && <item.icon className="size-5" />}
                     </span>
                   )}
 

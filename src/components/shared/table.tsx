@@ -10,16 +10,16 @@ import {
 
 const DashboardTable = ({ table, columns }) => {
   return (
-    <div className="rounded-lg max-w-[calc(100vw-20px)] md:max-w-[calc(100vw-100px)] lg:w-full">
+    <div className="rounded-xl border border-[#1b1e25] bg-[#0e1015] overflow-hidden max-w-[calc(100vw-20px)] md:max-w-[calc(100vw-100px)] lg:w-full">
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-[#0f111a] border-b border-[#1b1e25]">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow key={headerGroup.id} className="hover:bg-transparent border-none">
               {headerGroup.headers.map((header) => {
                 return (
                   <TableHead
                     key={header.id}
-                    className="bg-[#F1F1F1] text-[#5C5C5C] py-4"
+                    className="text-[#64748b] py-4.5 px-4 font-bold uppercase tracking-wider text-[10px] h-12"
                   >
                     {header.isPlaceholder
                       ? null
@@ -39,9 +39,10 @@ const DashboardTable = ({ table, columns }) => {
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
+                className="border-b border-[#1b1e25]/60 hover:bg-[#121520]/20"
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="text-zinc-500 p-0 h-14">
+                  <TableCell key={cell.id} className="text-zinc-300 p-4 h-16">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -49,7 +50,7 @@ const DashboardTable = ({ table, columns }) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns?.length} className="h-24 text-center">
+              <TableCell colSpan={columns?.length} className="h-24 text-center text-zinc-500">
                 No results.
               </TableCell>
             </TableRow>

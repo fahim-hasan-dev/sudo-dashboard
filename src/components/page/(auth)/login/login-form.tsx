@@ -53,7 +53,7 @@ export function LoginForm({
       <Card className="py-4 md:px-20 shadow-none border-none bg-white/60 backdrop-blur-xl">
         <CardHeader className="text-center">
           <figure className="flex justify-center mb-4 h-24">
-            <Image src={"/logo.svg"} alt="logo" width={180} height={100} />
+            <Image src={"/logo.png"} alt="logo" width={180} height={100} className="object-contain" />
           </figure>
           <CardTitle className="text-2xl">Log in to your account</CardTitle>
           <CardDescription className="pt-2 text-primary-foreground">

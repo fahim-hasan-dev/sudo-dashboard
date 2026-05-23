@@ -11,11 +11,11 @@ const SearchBar = () => {
       <Input
         id="search"
         placeholder="Search your interest"
-        className="rounded-full bg-[#F1F1F1] px-5 h-10 placeholder:text-[#B6B6B6]"
+        className="rounded-full bg-[#0e1015] border-[#1b1e25] text-white px-5 h-10 placeholder:text-zinc-500 focus-visible:ring-primary/40"
         size={40}
         onChange={(e) => updateSearchParam("searchTerm", e.target.value)}
       />
-      <Search className="absolute right-2 top-2 text-zinc-500" />
+      <Search className="absolute right-3 top-2.5 text-zinc-500 size-4" />
     </div>
   );
 };

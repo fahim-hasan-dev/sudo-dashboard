@@ -1,54 +1,59 @@
 import {
-  Blocks,
-  ChartNoAxesCombined,
-  Handshake,
-  MessagesSquare,
-  Settings,
-  Shield,
+  LayoutDashboard,
   UsersRound,
+  CreditCard,
+  Handshake,
+  HelpCircle,
+  FileText,
+  ShieldAlert,
+  Info,
 } from "lucide-react";
 
 export const sidebarMenu = {
   navMain: [
     {
-      title: "Analytics",
+      title: "Dashboard",
       url: "/",
-      icon: ChartNoAxesCombined,
+      icon: LayoutDashboard,
       isActive: true,
     },
     {
-      title: "Products",
-      url: "/products",
-      icon: Blocks,
-    },
-    {
-      title: "Users",
+      title: "Users Management",
       url: "/users",
       icon: UsersRound,
     },
     {
-      title: "Moderation",
-      url: "/moderation",
-      icon: Shield,
-    },
-    {
-      title: "Messaging",
-      url: "/messaging",
-      icon: MessagesSquare,
+      title: "Subscriptions & Payments",
+      url: "/products",
+      icon: CreditCard,
     },
     {
       title: "Support",
       url: "/support",
       icon: Handshake,
     },
-  ],
-  settings: [
     {
-      name: "Settings",
-      url: "/settings",
-      icon: Settings,
+      title: "FAQ's",
+      url: "/faq",
+      icon: HelpCircle,
+    },
+    {
+      title: "Terms & Condition",
+      url: "/terms",
+      icon: FileText,
+    },
+    {
+      title: "Privacy Policy",
+      url: "/privacy",
+      icon: ShieldAlert,
+    },
+    {
+      title: "About Us",
+      url: "/about",
+      icon: Info,
     },
   ],
+  settings: [],
 };
 
 export const profileData = {

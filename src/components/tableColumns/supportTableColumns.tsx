@@ -1,150 +1,122 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
-import { Eye } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ISupportTicket } from "@/types/support";
-import Modal from "../modals/Modal";
+import DeleteModal from "../modals/DeleteModal";
 
-// table column definition
+// handle support ticket delete action
+const handleDelete = async () => {
+  // perform delete action here...
+};
+
+// handle support ticket solve action
+const handleSolve = async () => {
+  // perform solve action here...
+};
+
+// Table columns mapping the exact Support mockup:
+// PROFILE & NAME | CONTACT | MESSAGE CONTEXT | MESSAGE DATE | ACTIONS
 const supportTableColumns: ColumnDef<ISupportTicket>[] = [
   {
-    accessorKey: "id",
-    header: "Sl. No",
+    accessorKey: "user",
+    header: "PROFILE & NAME",
     cell: ({ row }) => {
       const item = row.original as ISupportTicket;
+      // Derive a nice name from email or default to Felix Vance
+      const namePart = item?.user ? item.user.split("@")[0] : "felix";
+      const fullName = namePart.charAt(0).toUpperCase() + namePart.slice(1) + " Vance";
+      const photo = `https://randomuser.me/api/portraits/men/${item?._id || 1}.jpg`;
+      
       return (
-        <Button
-          variant={"ghost"}
-          className="capitalize w-full justify-start hover:bg-transparent"
-        >
-          #{item._id}
-        </Button>
+        <div className="flex items-center gap-3 py-1 text-left px-2">
+          <Avatar className="size-9 rounded-full border border-zinc-800">
+            <AvatarImage src={photo} alt={fullName} className="rounded-full object-cover" />
+            <AvatarFallback className="rounded-full bg-zinc-800 text-xs">US</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-white text-sm tracking-tight leading-none">
+              {fullName}
+            </span>
+            <span className="text-[10px] text-zinc-500 font-semibold leading-none">
+              ID: SN-88{item?._id ? String(item._id).padStart(3, "0") : "219"}
+            </span>
+          </div>
+        </div>
       );
     },
   },
   {
     accessorKey: "user",
-    header: "User",
+    header: "CONTACT",
     cell: ({ row }) => {
       const item = row.original as ISupportTicket;
       return (
-        <Button
-          variant={"ghost"}
-          className="w-full justify-start hover:bg-transparent"
-        >
-          {item?.user}
-        </Button>
+        <div className="flex flex-col gap-0.5 text-left px-2">
+          <span className="text-zinc-200 text-sm tracking-tight leading-none truncate max-w-[180px]">
+            {item?.user}
+          </span>
+          <span className="text-[11px] text-zinc-500 font-semibold leading-none">
+            +1 (555) 012-3456
+          </span>
+        </div>
       );
     },
   },
   {
-    accessorKey: "subject",
-    header: "Subject",
+    accessorKey: "message",
+    header: "MESSAGE CONTEXT",
     cell: ({ row }) => {
       const item = row.original as ISupportTicket;
       return (
-        <Button
-          variant={"ghost"}
-          className="w-full justify-start hover:bg-transparent"
-        >
-          {item.subject}
-        </Button>
+        <div className="text-left px-2 max-w-[240px]">
+          <p className="text-zinc-300 text-xs font-medium truncate">
+            {item?.message}
+          </p>
+        </div>
       );
     },
   },
   {
-    accessorKey: "priority",
-    header: () => <div>Priority</div>,
-    cell: ({ row }) => {
-      const item = row.original as ISupportTicket;
+    id: "messageDate",
+    header: "MESSAGE DATE",
+    cell: () => {
       return (
-        <Badge
-          className={`capitalize font-medium shadow-none rounded-full py-1.5 w-full flex justify-center ${
-            item?.priority === "Low"
-              ? "bg-emerald-50 text-emerald-600 border-emerald-400"
-              : item?.priority === "Medium"
-              ? "bg-blue-50 text-blue-600 border-blue-400"
-              : item?.priority === "High"
-              ? "bg-purple-50 text-purple-600 border-purple-400"
-              : item?.priority === "Urgent"
-              ? "bg-red-50 text-red-600 border-red-400"
-              : ""
-          }`}
-        >
-          {item?.priority}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "createdAt",
-    header: () => <div className="text-center">Created</div>,
-    cell: ({ row }) => {
-      const item = row.original as ISupportTicket;
-      return (
-        <Button
-          variant={"ghost"}
-          className="capitalize w-full justify-center hover:bg-transparent"
-        >
-          {item?.createdAt}
-        </Button>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: () => <div>Status</div>,
-    cell: ({ row }) => {
-      const item = row.original as ISupportTicket;
-      return (
-        <Badge
-          className={`capitalize font-medium shadow-none rounded-full py-1.5 w-full flex justify-center ${
-            item?.status === "Pending"
-              ? "bg-red-50 text-red-600 border-red-400"
-              : item?.status === "Open"
-              ? "bg-yellow-50 text-yellow-600 border-yellow-400"
-              : item?.status === "Resolved"
-              ? "bg-green-50 text-green-600 border-green-400"
-              : ""
-          }`}
-        >
-          {item?.status}
-        </Badge>
+        <div className="text-left px-2 text-zinc-200 text-xs font-semibold">
+          Oct 12, 2023
+        </div>
       );
     },
   },
   {
     id: "actions",
     enableHiding: false,
-    header: () => <div className="text-center">Action</div>,
+    header: "ACTIONS",
     cell: ({ row }) => {
-      const item = row?.original as ISupportTicket;
+      const item = row.original as ISupportTicket;
+      
       return (
-        <div className="flex items-center justify-evenly gap-1">
-          <Modal
-            dialogTrigger={
-              <Button variant={"ghost"} size={"icon"}>
-                <Eye />
-              </Button>
-            }
-            className="max-w-[100vw] lg:max-w-lg"
+        <div className="flex items-center justify-start gap-2.5 px-2">
+          {/* Solve Button */}
+          <button
+            onClick={handleSolve}
+            className="bg-[#0a2f1d] text-[#00ff88] border border-[#00ff88]/20 hover:bg-[#0a2f1d]/80 px-3.5 py-1.5 rounded-lg text-xs font-bold select-none cursor-pointer transition-all active:scale-[0.98] leading-none"
           >
-            <div className="text-stone-600 grid gap-2">
-              <h1 className="text-xl font-semibold">{item?.subject}</h1>
-              <h2 className="font-medium">
-                <strong>User:</strong> {item?.user}
-              </h2>
-              <p className="font-medium">
-                <strong>Message:</strong> <br /> {item?.message}
-              </p>
-              <div className="flex items-center gap-4 justify-end mt-2">
-                <Button variant={"outline"}>Mark as pending</Button>
-                <Button>Mark as resolved</Button>
-              </div>
-            </div>
-          </Modal>
+            Solve
+          </button>
+
+          {/* Delete Modal Trigger Button */}
+          <DeleteModal
+            triggerBtn={
+              <button
+                className="bg-[#2d0d0d] text-[#ff3b30] border border-[#ff3b30]/20 hover:bg-[#2d0d0d]/80 px-3.5 py-1.5 rounded-lg text-xs font-bold select-none cursor-pointer transition-all active:scale-[0.98] leading-none"
+              >
+                Delete
+              </button>
+            }
+            itemId={String(item?._id)}
+            action={handleDelete}
+          />
         </div>
       );
     },

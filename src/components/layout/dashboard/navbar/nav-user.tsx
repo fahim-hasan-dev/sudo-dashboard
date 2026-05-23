@@ -39,25 +39,19 @@ export function NavUser({
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground justify-center w-fit"
+              className="bg-primary hover:bg-primary/95 text-black hover:text-black font-semibold rounded-full px-4 py-2 flex items-center gap-2 border-none shadow-md shadow-primary/20 active:scale-[0.98] transition-all h-10 w-fit"
             >
-              <Avatar className="size-10 rounded-lg">
+              <Avatar className="size-7 rounded-full border border-black/10">
                 <AvatarImage
-                  src={`${user?.image}`}
-                  alt={user?.firstname}
-                  className="rounded-full relative"
+                  src={`${user?.image || "https://images.unsplash.com/photo-1633332755192-727a05c4013d?fm=jpg&q=60&w=3000"}`}
+                  alt={user?.firstname || "Admin"}
+                  className="rounded-full object-cover"
                 />
-                <span className="size-2.5 border border-white bg-[#319517] rounded-full absolute bottom-0 right-1"></span>
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-full bg-black/10 text-xs text-black">A</AvatarFallback>
               </Avatar>
-              <div className="hidden lg:grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold text-[#414141]">
-                  {user?.firstname} {user?.lastname}
-                </span>
-                <span className="truncate text-xs text-primary">
-                  {user?.role}
-                </span>
-              </div>
+              <span className="text-xs uppercase tracking-wider font-extrabold text-black">
+                {user?.role || "Admin"} Profile
+              </span>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

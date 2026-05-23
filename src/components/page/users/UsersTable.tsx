@@ -12,39 +12,19 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ChevronDown } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import userTableColumns from "@/components/tableColumns/userTableColumn";
-import { capitalizeSentence } from "@/utils/capitalizeSentence";
-import { userGenders, userRoles } from "@/constants/user";
-import { IUser } from "@/types/user";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useUpdateMultiSearchParams } from "@/hooks/useUpdateMultiSearchParams";
 import DashboardTable from "@/components/shared/table";
 import TablePagination from "@/components/shared/table-pagination";
-import { demoUsersData } from "@/demoData/users";
+import userTableColumns from "@/components/tableColumns/userTableColumn";
+import { IUser } from "@/types/user";
 
-// Extract unique roles from data
-const roles = Array.from(new Set(userRoles.map((item) => item.title)));
-// extract unique locations from data
-const locations = Array.from(
-  new Set(demoUsersData.map((item) => item.location))
-);
-
-const UsersTable = ({ users = [], filters, meta }) => {
+const UsersTable = ({ users = [], meta }) => {
   const updateMultiSearchParams = useUpdateMultiSearchParams();
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable<IUser>({
@@ -63,116 +43,42 @@ const UsersTable = ({ users = [], filters, meta }) => {
       columnFilters,
       columnVisibility,
       rowSelection,
-      // pagination: { pageIndex: 0, pageSize: 10 },
     },
   });
 
   return (
-    <div className="w-full bg-white p-4 rounded-xl h-full">
-      {/* table top option bar */}
-      <section className="flex flex-wrap justify-center md:justify-end gap-4 items-center pb-4">
-        {/* location Filter Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              className="capitalize shadow text-[#929292]"
-            >
-              {filters?.location ? `${filters?.location}` : "Location"}{" "}
-              <ChevronDown className="text-primary" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem
-              onClick={() =>
-                updateMultiSearchParams({ location: null, page: null })
-              }
-            >
-              All locations
-            </DropdownMenuItem>
-            {locations.map((item) => (
-              <DropdownMenuItem
-                key={item}
-                onClick={() =>
-                  updateMultiSearchParams({ location: item, page: null })
-                }
-              >
-                {capitalizeSentence(item)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <div className="w-full flex flex-col gap-6 animate-fadeIn pb-6 text-white">
+      {/* Header and Subtitles */}
+      <div>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          User Management
+        </h1>
+        <p className="text-sm font-semibold text-[#9f8b7c] mt-1">
+          Monitor and manage the global user base and their subscription metrics.
+        </p>
+      </div>
 
-        {/* Role Filter Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              className="capitalize shadow text-[#929292]"
-            >
-              {filters?.role ? `${filters?.role}` : "Role"}{" "}
-              <ChevronDown className="text-primary" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem
-              onClick={() =>
-                updateMultiSearchParams({ role: null, page: null })
-              }
-            >
-              All Roles
-            </DropdownMenuItem>
-            {roles.map((item) => (
-              <DropdownMenuItem
-                key={item}
-                onClick={() =>
-                  updateMultiSearchParams({ role: item, page: null })
-                }
-              >
-                {capitalizeSentence(item)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Full-width Search Bar */}
+      <div className="relative w-full">
+        <Search className="absolute left-4 top-3.5 text-zinc-500 size-5" />
+        <Input
+          type="text"
+          placeholder="Search here..."
+          className="bg-[#0e1015] border border-[#1b1e25] text-white rounded-lg h-12 w-full pl-12 pr-4 placeholder:text-zinc-500 focus-visible:ring-primary/30 text-sm shadow-inner transition-colors"
+          onChange={(e) =>
+            updateMultiSearchParams({
+              searchTerm: e.currentTarget.value || null,
+              page: null,
+            })
+          }
+        />
+      </div>
 
-        {/* Gender Filter Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              className="capitalize shadow text-[#929292]"
-            >
-              {filters?.gender ? `${filters?.gender}` : "Gender"}{" "}
-              <ChevronDown className="text-primary" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuItem
-              onClick={() =>
-                updateMultiSearchParams({ gender: null, page: null })
-              }
-            >
-              All Genders
-            </DropdownMenuItem>
-            {userGenders.map((item) => (
-              <DropdownMenuItem
-                key={item}
-                onClick={() =>
-                  updateMultiSearchParams({ gender: item, page: null })
-                }
-              >
-                {capitalizeSentence(item)}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </section>
-
-      {/* table and pagination*/}
-      <section>
+      {/* Compact Table and Pagination Card Container */}
+      <div className="flex flex-col">
         <DashboardTable table={table} columns={userTableColumns} />
         <TablePagination table={table} meta={meta} />
-      </section>
+      </div>
     </div>
   );
 };

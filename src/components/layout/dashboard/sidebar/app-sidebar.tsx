@@ -11,6 +11,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import Image from "next/image";
 import { NavSettings } from "./nav-settings";
@@ -24,34 +25,62 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader className="py-6 flex flex-row items-center justify-center border-b border-zinc-900/40">
-        <Link href={"/"} className="w-full flex justify-center items-center">
-          <Image
-            src={"/logo.png"}
-            alt="logo"
-            width={140}
-            height={70}
-            priority
-            className="w-auto max-h-[70px] object-contain px-4"
-          />
-        </Link>
+        <div className="w-full flex items-center justify-between px-4">
+          <Link href={"/"} className="flex items-center gap-3">
+            <Image
+              src="/logo-image.png"
+              alt="Sudo Icon"
+              width={36}
+              height={36}
+              priority
+              className="size-9 object-contain"
+            />
+            <div className="flex flex-col gap-0.5">
+              <Image
+                src="/logo-text.png"
+                alt="Sudo Text"
+                width={65}
+                height={15}
+                priority
+                className="h-3.5 w-auto object-contain"
+              />
+              <span className="text-[9px] font-bold text-zinc-500 tracking-wider uppercase leading-none mt-0.5">
+                Admin Console
+              </span>
+            </div>
+          </Link>
+          <SidebarTrigger className="text-zinc-500 hover:text-white" />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={sidebarMenu.navMain} />
         <NavSettings settings={sidebarMenu.settings} />
       </SidebarContent>
-      <SidebarFooter className="p-4 border-t border-zinc-900/40">
+      <SidebarFooter className="p-4 border-t border-zinc-900/40 bg-[#07080a]/40">
         <SidebarMenu>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="flex items-center justify-between gap-3 p-1">
+            {/* User details */}
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-full bg-blue-600/20 text-[#00ADEF] flex items-center justify-center font-bold text-xs select-none shrink-0 border border-[#00ADEF]/20">
+                SA
+              </div>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-xs font-bold text-white leading-none truncate">
+                  Super Admin
+                </span>
+                <span className="text-[10px] text-zinc-500 leading-none truncate mt-0.5">
+                  admin@circlepay.io
+                </span>
+              </div>
+            </div>
+            {/* Logout button */}
             <button
               onClick={() => logout()}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-[#ff3b30]/30 text-[#ff3b30] hover:bg-[#ff3b30]/10 active:scale-[0.98] transition-all font-semibold text-sm"
+              className="text-zinc-500 hover:text-red-500 p-2 transition-colors cursor-pointer select-none"
+              title="Logout"
             >
-              <LogOut className="size-4" />
-              Logout
+              <LogOut className="size-4.5" />
             </button>
-            <p className="text-center text-[11px] text-zinc-600 mt-4 font-medium tracking-wider">
-              Copyright@app
-            </p>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

@@ -1,24 +1,26 @@
 import UsersTable from "@/components/page/users/UsersTable";
+import UserDetails from "@/components/page/users/userDetails/UserDetails";
 import { demoUsersData } from "@/demoData/users";
-const UsersPage = async ({ searchParams }) => {
-  await searchParams;
-  // Build query parameters for the backend request
-  // const queryParams = new URLSearchParams({
-  //   ...(role && { role }),
-  //   ...(searchTerm && { searchTerm }),
-  //   ...(page && { page }),
-  // });
+import { IUser } from "@/types/user";
 
-  // Fetch data from the backend when backend is ready
-  // const res = await myFetch(`/user/users?${queryParams.toString()}`, {
-  //   tags: ["users"],
-  // });
+interface SearchParamsProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+const UsersPage = async ({ searchParams }: SearchParamsProps) => {
+  const resolvedSearchParams = await searchParams;
+  const userId = typeof resolvedSearchParams?.userId === "string" ? resolvedSearchParams.userId : undefined;
+
+  if (userId) {
+    const user = demoUsersData.find((u) => u._id === userId);
+    return <UserDetails userId={userId} user={user as IUser} />;
+  }
 
   return (
     <>
       <UsersTable
-        users={demoUsersData as never[]}
-        meta={{ page: 1, totalPage: 1, total: 12 } as never}
+        users={demoUsersData as IUser[]}
+        meta={{ page: 1, totalPage: 1, total: 12 }}
       />
     </>
   );

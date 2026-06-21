@@ -87,7 +87,9 @@ const TablePagination: React.FC<TablePaginationProps> = ({ meta }) => {
               onClick={() => updateSearchParams("page", String(pageNum))}
               className={`size-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all active:scale-95 leading-none ${
                 isActive
-                  ? "bg-primary text-black shadow-md shadow-primary/10"
+                  ? contextName === "users"
+                    ? "bg-[#00ADEF] text-white shadow-md shadow-[#00ADEF]/10"
+                    : "bg-primary text-black shadow-md shadow-primary/10"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800/40"
               }`}
             >

@@ -1,13 +1,11 @@
 import DashboardBreadcrumb from "@/components/layout/dashboard/navbar/dashboard-breadcrumb";
-import NavUserWrapper from "@/components/layout/dashboard/navbar/nav-user-wrapper";
 import { AppSidebar } from "@/components/layout/dashboard/sidebar/app-sidebar";
-import SearchBar from "@/components/shared/SearchBar";
+import NotificationDropdown from "@/components/layout/dashboard/navbar/NotificationDropdown";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Bell } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -25,16 +23,10 @@ export default function DashboardLayout({
             <SidebarTrigger className="xl:hidden -ml-1 text-white" />
             <DashboardBreadcrumb />
           </div>
-          {/* searchbar */}
-          <div className="flex justify-center items-center gap-4 md:gap-6">
-            <SearchBar />
+          {/* header actions */}
+          <div className="flex justify-center items-center gap-4">
             {/* notification */}
-            <div className="relative cursor-pointer p-2 text-zinc-400 hover:text-white transition-colors">
-              <span className="absolute top-1 right-1 size-2 bg-primary rounded-full border border-[#07080a]"></span>
-              <Bell className="size-5" />
-            </div>
-            {/* user dropdown */}
-            <NavUserWrapper />
+            <NotificationDropdown />
           </div>
         </header>
         {/* dashboard content */}

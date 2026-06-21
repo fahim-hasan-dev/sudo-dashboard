@@ -37,15 +37,15 @@ export function NavMain({
               <SidebarMenuItem>
                 <SidebarMenuButton
                   tooltip={item.title}
-                  className={`flex w-full items-center gap-3 py-5 px-4 transition-all duration-300 font-semibold text-sm border-l-[3px] ${
+                  className={`flex w-full items-center gap-3 py-5 px-4 rounded-xl transition-all duration-300 font-semibold text-sm ${
                     isActive
-                      ? "bg-primary/5 text-primary border-primary font-bold"
-                      : "text-zinc-400 border-transparent hover:text-zinc-200 hover:bg-zinc-900/30"
+                      ? "bg-[#00ADEF]/8 text-[#00ADEF] font-bold"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-[#00ADEF]/5"
                   }`}
                 >
                   {item.icon && (
-                    <span className="shrink-0">
-                      {item.icon && <item.icon className="size-5" />}
+                    <span className={`shrink-0 ${isActive ? "text-[#00ADEF]" : "text-zinc-450"}`}>
+                      <item.icon className="size-5" />
                     </span>
                   )}
 

@@ -1,156 +1,307 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import StatCard from "@/components/page/analytics/cards/StatCard";
-import { Users, Activity, DollarSign, QrCode } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Users, Activity, Wallet, TrendingUp } from "lucide-react";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-const chartConfig = {
-  active: {
-    label: "Active Users",
-    color: "var(--primary)",
-  },
-};
-
-// 30-day high-density demo dataset mimicking the mockup curve rising and dipping organically
-const chartData = [
-  { date: "01 Oct", active: 20 },
-  { date: "03 Oct", active: 22 },
-  { date: "05 Oct", active: 21 },
-  { date: "08 Oct", active: 23 },
-  { date: "10 Oct", active: 28 },
-  { date: "12 Oct", active: 38 },
-  { date: "15 Oct", active: 56 },
-  { date: "18 Oct", active: 50 },
-  { date: "20 Oct", active: 48 },
-  { date: "22 Oct", active: 45 },
-  { date: "25 Oct", active: 54 },
-  { date: "28 Oct", active: 68 },
-  { date: "30 Oct", active: 88 },
+// Data for Subscription Growth (Jan - Jun)
+const subscriptionData = [
+  { month: "Jan", subscriptions: 3200 },
+  { month: "Feb", subscriptions: 3950 },
+  { month: "Mar", subscriptions: 4120 },
+  { month: "Apr", subscriptions: 4680 },
+  { month: "May", subscriptions: 4920 },
+  { month: "Jun", subscriptions: 5240 },
 ];
 
-const AnalyticsPage = () => {
+// Data for User Growth (Jan - Dec)
+const userGrowthData = [
+  { month: "Jan", active: 5000 },
+  { month: "Feb", active: 6800 },
+  { month: "Mar", active: 7900 },
+  { month: "Apr", active: 10500 },
+  { month: "May", active: 13800 },
+  { month: "Jun", active: 17200 },
+  { month: "Jul", active: 21800 },
+  { month: "Aug", active: 24900 },
+  { month: "Sep", active: 27800 },
+  { month: "Oct", active: 30800 },
+  { month: "Nov", active: 33500 },
+  { month: "Dec", active: 36412 },
+];
+
+// Data for Weekly Transaction Volume (Mon - Sun)
+const weeklyTransactionData = [
+  { day: "Mon", volume: 120 },
+  { day: "Tue", volume: 190 },
+  { day: "Wed", volume: 135 },
+  { day: "Thu", volume: 205 },
+  { day: "Fri", volume: 225 },
+  { day: "Sat", volume: 100 },
+  { day: "Sun", volume: 85 },
+];
+
+const OverviewDashboard = () => {
+  const [currentDate, setCurrentDate] = useState("Wednesday, June 10, 2026");
+
+  useEffect(() => {
+    // Generate dynamic date on client side to avoid hydration mismatch
+    const formatted = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    setCurrentDate(formatted);
+  }, []);
+
   return (
-    <div className="h-full flex flex-col gap-6 animate-fadeIn pb-6">
-      {/* Page Title & Subtitle */}
-      <div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">
-          Systems Overview
+    <div className="h-full flex flex-col gap-6 animate-fadeIn pb-8 text-white">
+      {/* Overview Title and Date Header */}
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-3xl font-extrabold text-white tracking-tight leading-none">
+          Overview Dashboard
         </h1>
-        <p className="text-sm font-semibold text-[#9f8b7c] mt-1">
-          Real-time performance metrics for ROUTEIN application
-        </p>
+        <span className="text-[11px] md:text-xs font-semibold text-zinc-500 tracking-wide mt-1 block">
+          {currentDate}
+        </span>
       </div>
 
-      {/* Grid of 4 Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
         <StatCard
           title="Total Users"
-          value="84,293"
-          icon={<Users className="h-6 w-6 text-[#FF8E25]" />}
+          value="36,412"
+          icon={<Users className="size-5" />}
+          iconBg="bg-blue-500/10"
+          iconColor="text-blue-500"
         />
         <StatCard
-          title="Active Users Today"
-          value="12,402"
-          icon={<Activity className="h-6 w-6 text-[#2AC5F4]" />}
+          title="Active Users"
+          value="30,248"
+          icon={<Activity className="size-5" />}
+          iconBg="bg-emerald-500/10"
+          iconColor="text-emerald-500"
         />
         <StatCard
-          title="Subscription Revenue"
-          value="$3.8M"
-          icon={<DollarSign className="h-6 w-6 text-[#2AC5F4]" />}
+          title="Savings Groups"
+          value="4,821"
+          icon={<Wallet className="size-5" />}
+          iconBg="bg-purple-500/10"
+          iconColor="text-purple-500"
         />
         <StatCard
-          title="Total Scans"
-          value="456K"
-          icon={<QrCode className="h-6 w-6 text-[#2AC5F4]" />}
+          title="Total Revenue"
+          value="$104,200"
+          icon={<TrendingUp className="size-5" />}
+          iconBg="bg-cyan-500/10"
+          iconColor="text-cyan-500"
         />
       </div>
 
-      {/* Large Daily User Activity Chart Card */}
-      <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 shadow-md flex flex-col gap-4">
+      {/* Subscription Growth Chart Card */}
+      <div className="bg-[#0e1015]/60 backdrop-blur-xl border border-zinc-850 rounded-2xl p-5 md:p-6 shadow-md flex flex-col gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">
-            Daily User Activity
+          <h2 className="text-base md:text-lg font-bold text-white tracking-tight leading-none">
+            Subscription Growth
           </h2>
-          <p className="text-xs text-zinc-500 font-medium mt-0.5">
-            Last 30 days active engagement
-          </p>
+          <span className="text-[10px] md:text-xs font-semibold text-zinc-550 block mt-1.5">
+            6-month trend across all plans
+          </span>
         </div>
 
-        {/* Recharts Area Chart in ChartContainer wrapper */}
-        <div className="w-full relative mt-4 h-80">
-          <ChartContainer config={chartConfig} className="h-full w-full aspect-auto">
-            <AreaChart
-              data={chartData}
-              margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+        <div className="w-full h-80 mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={subscriptionData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              barSize={18}
             >
-              <defs>
-                <linearGradient id="chartAreaGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#FF8E25" stopOpacity={0.25} />
-                  <stop offset="100%" stopColor="#FF8E25" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                vertical={false}
-                strokeDasharray="3 3"
-                stroke="#1d222b"
-              />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#1d222b/40" />
               <XAxis
-                dataKey="date"
+                dataKey="month"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={12}
                 stroke="#6b7280"
-                style={{ fontSize: "11px", fontWeight: "600" }}
-                tickFormatter={(value) => {
-                  // Only display specific dates to match the mockup design
-                  if (["01 Oct", "08 Oct", "15 Oct", "22 Oct", "30 Oct"].includes(value)) {
-                    return value;
-                  }
-                  return "";
+                style={{ fontSize: "10px", fontWeight: "600" }}
+                tickMargin={12}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                stroke="#6b7280"
+                style={{ fontSize: "10px", fontWeight: "600" }}
+                tickMargin={12}
+                domain={[0, 6000]}
+                ticks={[0, 1500, 3000, 4500, 6000]}
+              />
+              <Tooltip
+                cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                contentStyle={{
+                  backgroundColor: "#0e1015",
+                  border: "1px solid #191c24",
+                  borderRadius: "8px",
+                  fontSize: "11px",
+                  color: "#ffffff",
                 }}
               />
-              <ChartTooltip
-                cursor={{ stroke: "#1d222b", strokeWidth: 1 }}
-                content={<ChartTooltipContent indicator="line" />}
+              <Bar
+                dataKey="subscriptions"
+                fill="#2ac5f4"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* User Growth Chart Card */}
+      <div className="bg-[#0e1015]/60 backdrop-blur-xl border border-zinc-850 rounded-2xl p-5 md:p-6 shadow-md flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base md:text-lg font-bold text-white tracking-tight leading-none">
+              User Growth
+            </h2>
+            <span className="text-[10px] md:text-xs font-semibold text-zinc-550 block mt-1.5">
+              Total vs active users over 12 months
+            </span>
+          </div>
+
+          {/* Simple Chart Legend indicators */}
+          <div className="flex items-center gap-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest select-none">
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#00ADEF]" />
+              <span>Total</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-[#10B981]" />
+              <span>Active</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full h-80 mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={userGrowthData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="userGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#1d222b/40" />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                axisLine={false}
+                stroke="#6b7280"
+                style={{ fontSize: "10px", fontWeight: "600" }}
+                tickMargin={12}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                stroke="#6b7280"
+                style={{ fontSize: "10px", fontWeight: "600" }}
+                tickMargin={12}
+                domain={[0, 38000]}
+                ticks={[0, 10000, 19000, 29000, 38000]}
+                tickFormatter={(value) => `${value / 1000}k`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#0e1015",
+                  border: "1px solid #191c24",
+                  borderRadius: "8px",
+                  fontSize: "11px",
+                  color: "#ffffff",
+                }}
               />
               <Area
                 type="monotone"
                 dataKey="active"
-                stroke="#FF8E25"
+                stroke="#10B981"
                 strokeWidth={3}
-                fill="url(#chartAreaGlow)"
-                dot={(props) => {
-                  const { cx, cy, payload } = props;
-                  // Render glowing active dots on specific dates
-                  if (["01 Oct", "08 Oct", "15 Oct", "22 Oct", "30 Oct"].includes(payload.date)) {
-                    return (
-                      <g key={`dot-${payload.date}`}>
-                        <circle cx={cx} cy={cy} r={8} fill="#FF8E25" fillOpacity={0.3} />
-                        <circle cx={cx} cy={cy} r={4} fill="#ffffff" stroke="#FF8E25" strokeWidth={2} />
-                      </g>
-                    );
-                  }
-                  return <React.Fragment key={`empty-${cx}`} />;
-                }}
-                activeDot={{
-                  r: 6,
-                  fill: "#FF8E25",
-                  stroke: "#ffffff",
-                  strokeWidth: 2,
-                }}
+                fill="url(#userGlow)"
+                dot={false}
               />
             </AreaChart>
-          </ChartContainer>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Weekly Transaction Volume */}
+      <div className="bg-[#0e1015]/60 backdrop-blur-xl border border-zinc-850 rounded-2xl p-5 md:p-6 shadow-md flex flex-col gap-4">
+        <div>
+          <h2 className="text-base md:text-lg font-bold text-white tracking-tight leading-none">
+            Weekly Transaction Volume
+          </h2>
+          <span className="text-[10px] md:text-xs font-semibold text-zinc-550 block mt-1.5">
+            Total $ processed per day
+          </span>
+        </div>
+
+        <div className="w-full h-80 mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={weeklyTransactionData}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              barSize={24}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#1d222b/40" />
+              <XAxis
+                dataKey="day"
+                tickLine={false}
+                axisLine={false}
+                stroke="#6b7280"
+                style={{ fontSize: "10px", fontWeight: "600" }}
+                tickMargin={12}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                stroke="#6b7280"
+                style={{ fontSize: "10px", fontWeight: "600" }}
+                tickMargin={12}
+                domain={[0, 240]}
+                ticks={[0, 60, 120, 180, 240]}
+                tickFormatter={(val) => `$${val}k`}
+              />
+              <Tooltip
+                cursor={{ fill: "rgba(255,255,255,0.02)" }}
+                contentStyle={{
+                  backgroundColor: "#0e1015",
+                  border: "1px solid #191c24",
+                  borderRadius: "8px",
+                  fontSize: "11px",
+                  color: "#ffffff",
+                }}
+              />
+              <Bar
+                dataKey="volume"
+                fill="#00ADEF"
+                radius={[6, 6, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
   );
 };
 
-export default AnalyticsPage;
+export default OverviewDashboard;

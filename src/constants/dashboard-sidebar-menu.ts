@@ -2,55 +2,64 @@ import {
   LayoutDashboard,
   UsersRound,
   CreditCard,
-  Handshake,
   HelpCircle,
-  FileText,
-  ShieldAlert,
-  Info,
 } from "lucide-react";
 
 export const sidebarMenu = {
   navMain: [
     {
-      title: "Dashboard",
+      title: "Overview",
       url: "/",
       icon: LayoutDashboard,
-      isActive: true,
     },
     {
-      title: "Users Management",
+      title: "User Management",
       url: "/users",
       icon: UsersRound,
+      items: [
+        {
+          title: "All Users",
+          url: "/users",
+        },
+        {
+          title: "KYC Verification",
+          url: "/users/kyc",
+        },
+      ],
     },
     {
-      title: "Subscriptions & Payments",
-      url: "/products",
+      title: "Finance",
+      url: "/finance",
       icon: CreditCard,
+      items: [
+        {
+          title: "Savings Groups",
+          url: "/finance/savings-groups",
+        },
+        {
+          title: "Transactions",
+          url: "/finance/transactions",
+        },
+        {
+          title: "Subscriptions",
+          url: "/finance/subscriptions",
+        },
+      ],
     },
     {
-      title: "Support",
-      url: "/support",
-      icon: Handshake,
-    },
-    {
-      title: "FAQ's",
-      url: "/faq",
-      icon: HelpCircle,
-    },
-    {
-      title: "Terms & Condition",
-      url: "/terms",
-      icon: FileText,
-    },
-    {
-      title: "Privacy Policy",
-      url: "/privacy",
-      icon: ShieldAlert,
-    },
-    {
-      title: "About Us",
-      url: "/about",
-      icon: Info,
+      title: "Platform",
+      url: "/platform",
+      icon: HelpCircle, // Will use HelpCircle or placeholder icon
+      items: [
+        {
+          title: "Notifications",
+          url: "/platform/notifications",
+        },
+        {
+          title: "CMS",
+          url: "/platform/cms",
+        },
+      ],
     },
   ],
   settings: [],

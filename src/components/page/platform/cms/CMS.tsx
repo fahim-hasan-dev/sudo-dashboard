@@ -21,6 +21,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
+import { myFetch } from "@/utils/myFetch";
+import { toast } from "react-hot-toast";
+
 // Load JoditEditor dynamically with ssr: false to prevent Next.js SSR crashes
 const JoditEditor = dynamic(() => import("jodit-react"), {
   ssr: false,
@@ -76,58 +79,25 @@ const initialPages: ContentPageItem[] = [
   },
 ];
 
-const initialTermsContent = `<h1>Terms and Conditions</h1>
-<p>Last updated: May 12, 2026</p>
-<h2>1. Acceptance of Terms</h2>
-<p>By accessing and using CirclePay ("the Platform"), you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our services.</p>
-<h2>2. Description of Service</h2>
-<p>CirclePay is a peer-to-peer savings circle platform that enables users to form contribution groups, pool funds, and distribute payouts on a rotating basis.</p>
-<h2>3. User Eligibility</h2>
-<p>You must be at least 18 years of age and have completed KYC verification to participate in savings groups with contribution amounts exceeding $500 per cycle.</p>
-<h2>4. Financial Obligations</h2>
-<p>All members of a savings circle are bound to their contribution schedule. Failure to contribute may result in suspension from the group and the platform.</p>`;
-
-const initialPrivacyContent = `<h1>Privacy Policy</h1>
-<p>Last updated: May 12, 2026</p>
-<h2>1. Information We Collect</h2>
-<p>We collect information you provide directly to us when creating an account, updating your profile, or executing savings circle transactions.</p>
-<h2>2. How We Use Information</h2>
-<p>We use the information we collect to provide, maintain, and improve our services, verify identity (KYC), and protect against fraudulent activity.</p>
-<h2>3. Data Protection</h2>
-<p>We implement standard cryptographic safeguards to secure your personal information and transaction details against unauthorized access.</p>`;
-
-const initialAboutContent = `<h1>About Us</h1>
-<p>Last updated: April 20, 2026</p>
-<h2>Our Vision</h2>
-<p>At CirclePay, our vision is to democratize financial savings through secure, automated, and community-driven peer-to-peer savings circles.</p>
-<h2>Empowering Communities</h2>
-<p>We build tools that make it easy for groups, families, and local communities to pool capital, establish savings targets, and achieve their collective financial goals.</p>
-<h2>Security First</h2>
-<p>Our platform integrates advanced escrow structures, identity verification, and ledger compliance to provide peace of mind for every circle participant.</p>`;
-
-const initialFaqs: FaqItem[] = Array.from({ length: 50 }, (_, i) => ({
-  id: (i + 1).toString(),
-  question: i % 2 === 0 ? "How do i reset my password?" : "How do I complete KYC verification?",
-  answer:
-    i % 2 === 0
-      ? "To reset your password, navigate to the Login page and click on the 'Forgot Password' link. Enter your registered email address, and we will send you an OTP code to verify and reset your security credentials."
-      : "To complete KYC, navigate to User Management, upload a valid government-issued ID (Passport, National ID Card, or Driver License) along with a clear selfie. Approvals are processed within 24 hours.",
-}));
-
 const CMS = () => {
   const [currentDate, setCurrentDate] = useState("Wednesday, June 10, 2026");
   const [selectedPageId, setSelectedPageId] = useState("terms");
 
   // Page contents state
-  const [termsContent, setTermsContent] = useState(initialTermsContent);
-  const [privacyContent, setPrivacyContent] = useState(initialPrivacyContent);
-  const [aboutContent, setAboutContent] = useState(initialAboutContent);
+  const [termsContent, setTermsContent] = useState("");
+  const [privacyContent, setPrivacyContent] = useState("");
+  const [aboutContent, setAboutContent] = useState("");
 
   // Faqs state
-  const [faqs, setFaqs] = useState<FaqItem[]>(initialFaqs);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const faqsPerPage = 8; // Render 8 rows per page in table
+
+  // Loading states
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [isSavingContent, setIsSavingContent] = useState(false);
+  const [isSubmittingFaq, setIsSubmittingFaq] = useState(false);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -151,6 +121,45 @@ const CMS = () => {
     });
     setCurrentDate(formatted);
   }, []);
+
+  // Fetch page content or FAQs based on selected tab
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoadingContent(true);
+      try {
+        if (selectedPageId === "faq") {
+          const res = await myFetch("/public/faq/all");
+          if (res.success && Array.isArray(res.data)) {
+            const mappedFaqs: FaqItem[] = res.data.map(
+              (item: { _id?: string; id?: string; question: string; answer: string }) => ({
+                id: item._id || item.id || Date.now().toString(),
+                question: item.question,
+                answer: item.answer,
+              })
+            );
+            setFaqs(mappedFaqs);
+          }
+        } else {
+          let apiType = "terms-and-condition";
+          if (selectedPageId === "privacy") apiType = "privacy-policy";
+          if (selectedPageId === "about") apiType = "about";
+
+          const res = await myFetch(`/public/${apiType}`);
+          if (res.success && res.data?.content !== undefined) {
+            if (selectedPageId === "terms") setTermsContent(res.data.content);
+            if (selectedPageId === "privacy") setPrivacyContent(res.data.content);
+            if (selectedPageId === "about") setAboutContent(res.data.content);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load CMS data:", err);
+      } finally {
+        setIsLoadingContent(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedPageId]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -177,10 +186,6 @@ const CMS = () => {
     else if (selectedPageId === "about") setAboutContent(newContent);
   };
 
-  const handleSavePage = () => {
-    showToast(`Page "${activePage.title}" saved and published successfully!`);
-  };
-
   // Word & Character counter helpers
   const getCharCount = (str: string) => {
     const text = str.replace(/<[^>]*>/g, ""); // Strip HTML tags
@@ -191,6 +196,35 @@ const CMS = () => {
     const text = str.replace(/<[^>]*>/g, " ").trim(); // Strip HTML tags
     if (!text) return 0;
     return text.split(/\s+/).length;
+  };
+
+  const handleSavePage = async () => {
+    let apiType = "terms-and-condition";
+    if (selectedPageId === "privacy") apiType = "privacy-policy";
+    if (selectedPageId === "about") apiType = "about";
+
+    setIsSavingContent(true);
+    try {
+      const res = await myFetch("/public", {
+        method: "POST",
+        body: {
+          type: apiType,
+          content: activeContent,
+        },
+      });
+
+      if (res.success) {
+        toast.success(`${activePage.title} saved successfully!`);
+        showToast(`Page "${activePage.title}" saved and published successfully!`);
+      } else {
+        toast.error(res.message || "Failed to save content");
+      }
+    } catch (error) {
+      console.error("Error saving CMS page:", error);
+      toast.error("An error occurred while saving content.");
+    } finally {
+      setIsSavingContent(false);
+    }
   };
 
   // Faq functions
@@ -230,25 +264,46 @@ const CMS = () => {
     setFaqAnswer(faq.answer);
   };
 
-  const handleCreateFaqSubmit = (e: React.FormEvent) => {
+  const handleCreateFaqSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!faqQuestion.trim() || !faqAnswer.trim()) {
       showToast("Question and Answer are required!");
       return;
     }
 
-    const newFaq: FaqItem = {
-      id: Date.now().toString(),
-      question: faqQuestion.trim(),
-      answer: faqAnswer.trim(),
-    };
+    setIsSubmittingFaq(true);
+    try {
+      const res = await myFetch("/public/faq", {
+        method: "POST",
+        body: {
+          question: faqQuestion.trim(),
+          answer: faqAnswer.trim(),
+        },
+      });
 
-    setFaqs((prev) => [newFaq, ...prev]);
-    setIsCreateOpen(false);
-    showToast("FAQ created successfully!");
+      if (res.success && res.data) {
+        const newFaq: FaqItem = {
+          id: res.data._id || res.data.id || Date.now().toString(),
+          question: res.data.question || faqQuestion.trim(),
+          answer: res.data.answer || faqAnswer.trim(),
+        };
+
+        setFaqs((prev) => [newFaq, ...prev]);
+        setIsCreateOpen(false);
+        toast.success("FAQ created successfully!");
+        showToast("FAQ created successfully!");
+      } else {
+        toast.error(res.message || "Failed to create FAQ");
+      }
+    } catch (error) {
+      console.error("Error creating FAQ:", error);
+      toast.error("Failed to create FAQ");
+    } finally {
+      setIsSubmittingFaq(false);
+    }
   };
 
-  const handleEditFaqSubmit = (e: React.FormEvent) => {
+  const handleEditFaqSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingFaq) return;
     if (!faqQuestion.trim() || !faqAnswer.trim()) {
@@ -256,20 +311,55 @@ const CMS = () => {
       return;
     }
 
-    setFaqs((prev) =>
-      prev.map((f) =>
-        f.id === editingFaq.id
-          ? { ...f, question: faqQuestion.trim(), answer: faqAnswer.trim() }
-          : f
-      )
-    );
-    setEditingFaq(null);
-    showToast("FAQ updated successfully!");
+    setIsSubmittingFaq(true);
+    try {
+      const res = await myFetch(`/public/faq/${editingFaq.id}`, {
+        method: "PATCH",
+        body: {
+          question: faqQuestion.trim(),
+          answer: faqAnswer.trim(),
+        },
+      });
+
+      if (res.success) {
+        setFaqs((prev) =>
+          prev.map((f) =>
+            f.id === editingFaq.id
+              ? { ...f, question: faqQuestion.trim(), answer: faqAnswer.trim() }
+              : f
+          )
+        );
+        setEditingFaq(null);
+        toast.success("FAQ updated successfully!");
+        showToast("FAQ updated successfully!");
+      } else {
+        toast.error(res.message || "Failed to update FAQ");
+      }
+    } catch (error) {
+      console.error("Error updating FAQ:", error);
+      toast.error("Failed to update FAQ");
+    } finally {
+      setIsSubmittingFaq(false);
+    }
   };
 
-  const handleDeleteFaq = (id: string) => {
-    setFaqs((prev) => prev.filter((f) => f.id !== id));
-    showToast("FAQ deleted successfully!");
+  const handleDeleteFaq = async (id: string) => {
+    try {
+      const res = await myFetch(`/public/faq/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.success) {
+        setFaqs((prev) => prev.filter((f) => f.id !== id));
+        toast.success("FAQ deleted successfully!");
+        showToast("FAQ deleted successfully!");
+      } else {
+        toast.error(res.message || "Failed to delete FAQ");
+      }
+    } catch (error) {
+      console.error("Error deleting FAQ:", error);
+      toast.error("Failed to delete FAQ");
+    }
   };
 
   // Jodit Editor configuration overridden to look premium and match mockup styling
@@ -392,10 +482,11 @@ const CMS = () => {
                 </span>
                 <button
                   onClick={handleSavePage}
-                  className="bg-gradient-to-r from-[#00ADEF] to-[#3b82f6] hover:opacity-90 border-none text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(0,173,239,0.15)]"
+                  disabled={isSavingContent || isLoadingContent}
+                  className="bg-gradient-to-r from-[#00ADEF] to-[#3b82f6] hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none border-none text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(0,173,239,0.15)]"
                 >
                   <Save className="size-3.5" />
-                  Save & Publish
+                  {isSavingContent ? "Saving..." : "Save & Publish"}
                 </button>
               </div>
 
@@ -617,15 +708,17 @@ const CMS = () => {
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(false)}
-                className="bg-[#08090d] border border-[#1b1e25] text-zinc-350 hover:text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98]"
+                disabled={isSubmittingFaq}
+                className="bg-[#08090d] border border-[#1b1e25] text-zinc-350 hover:text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="bg-gradient-to-r from-[#00ADEF] to-[#3b82f6] hover:opacity-90 border-none text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98] shadow-[0_0_15px_rgba(0,173,239,0.15)]"
+                disabled={isSubmittingFaq}
+                className="bg-gradient-to-r from-[#00ADEF] to-[#3b82f6] hover:opacity-90 border-none text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98] shadow-[0_0_15px_rgba(0,173,239,0.15)] disabled:opacity-50"
               >
-                Submit
+                {isSubmittingFaq ? "Submitting..." : "Submit"}
               </button>
             </div>
           </form>
@@ -681,15 +774,17 @@ const CMS = () => {
                 <button
                   type="button"
                   onClick={() => setEditingFaq(null)}
-                  className="bg-[#08090d] border border-[#1b1e25] text-zinc-350 hover:text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98]"
+                  disabled={isSubmittingFaq}
+                  className="bg-[#08090d] border border-[#1b1e25] text-zinc-350 hover:text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-gradient-to-r from-[#00ADEF] to-[#3b82f6] hover:opacity-90 border-none text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98] shadow-[0_0_15px_rgba(0,173,239,0.15)]"
+                  disabled={isSubmittingFaq}
+                  className="bg-gradient-to-r from-[#00ADEF] to-[#3b82f6] hover:opacity-90 border-none text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer active:scale-[0.98] shadow-[0_0_15px_rgba(0,173,239,0.15)] disabled:opacity-50"
                 >
-                  Save
+                  {isSubmittingFaq ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>

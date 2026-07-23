@@ -1,23 +1,69 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import RichTextEditor from "@/components/page/editor/RichTextEditor";
+import { myFetch } from "@/utils/myFetch";
+import { toast } from "react-hot-toast";
 
 const PrivacyPage = () => {
-  const dummyPrivacy = `<p>Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magnis convallis arcu enim tortor. Cursus a sed tortor enim mi imperdiet massa donec mauris. Sem morbi morbi posuere faucibus. Cras risus ultrices duis pharetra sit porttitor elementum sagittis elementum. Ut vitae blandit pulvinar fermentum in id sed. At pellentesque non semper eget egestas vulputate id volutpat quis. Dolor etiam sodales at elementum mattis nibh quam placerat ut. Non dictum orci at tortor convallis tortor suspendisse. Ac duis senectus arcu nullam in suspendisse vitae. Tellus interdum enim lorem vel morbi lectus.</p><p>Lorem ipsum dolor sit amet consectetur. Fringilla a cras vitae orci. Egestas duis id nisl sed ante congue scelerisque. Eleifend facilisis aliquet tempus morbi leo sagittis. Pellentesque odio amet turpis habitant. Imperdiet tincidunt nisl consectetur hendrerit accumsan vehicula imperdiet mattis. Neque a vitae diam pharetra duis habitasse convallis luctus pulvinar. Pharetra nunc morbi elementum nisl magnis convallis arcu enim tortor. Cursus a sed tortor enim mi imperdiet massa donec mauris. Sem morbi morbi posuere faucibus. Cras risus ultrices duis pharetra sit porttitor elementum sagittis elementum. Ut vitae blandit pulvinar fermentum in id sed. At pellentesque non semper eget egestas vulputate id volutpat quis. Dolor etiam sodales at elementum mattis nibh quam placerat ut. Non dictum orci at tortor convallis tortor suspendisse. Ac duis senectus arcu nullam in suspendisse vitae. Tellus interdum enim lorem vel morbi lectus.</p>`;
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const handleUpdate = (newContent: string) => {
-    console.log("Updated Privacy Content:", newContent);
+  useEffect(() => {
+    const fetchPrivacy = async () => {
+      try {
+        const res = await myFetch("/public/privacy-policy");
+        if (res.success && res.data?.content !== undefined) {
+          setContent(res.data.content);
+        }
+      } catch (error) {
+        console.error("Failed to fetch privacy policy:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrivacy();
+  }, []);
+
+  const handleUpdate = async (newContent: string) => {
+    try {
+      const res = await myFetch("/public", {
+        method: "POST",
+        body: {
+          type: "privacy-policy",
+          content: newContent,
+        },
+      });
+
+      if (res.success) {
+        toast.success("Privacy Policy updated successfully!");
+        setContent(newContent);
+      } else {
+        toast.error(res.message || "Failed to update Privacy Policy");
+      }
+    } catch (error) {
+      console.error("Error updating privacy policy:", error);
+      toast.error("Failed to update Privacy Policy");
+    }
   };
 
   const handleCancel = () => {
     window.location.reload();
   };
 
+  if (loading) {
+    return (
+      <div className="w-full h-80 rounded-xl border border-[#1b1e25] bg-[#0e1015] animate-pulse flex items-center justify-center text-zinc-500">
+        Loading Privacy Policy...
+      </div>
+    );
+  }
+
   return (
     <RichTextEditor
       title="Privacy Policy"
-      initialContent={dummyPrivacy}
+      initialContent={content}
       onUpdate={handleUpdate}
       onCancel={handleCancel}
     />

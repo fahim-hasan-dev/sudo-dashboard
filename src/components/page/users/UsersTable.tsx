@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -27,10 +28,42 @@ interface UsersTableProps {
     totalPage: number;
     total: number;
   };
+  totalUsers?: number;
+  activeUsers?: number;
+  suspendedUsers?: number;
 }
 
-const UsersTable: React.FC<UsersTableProps> = ({ users = [], meta }) => {
+const UsersTable: React.FC<UsersTableProps> = ({
+  users = [],
+  meta,
+  totalUsers = 0,
+  activeUsers = 0,
+  suspendedUsers = 0,
+}) => {
+  const searchParams = useSearchParams();
   const updateMultiSearchParams = useUpdateMultiSearchParams();
+  const [searchValue, setSearchValue] = React.useState(searchParams.get("searchTerm") || "");
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isMounted) return;
+    const delayDebounceFn = setTimeout(() => {
+      const currentParam = searchParams.get("searchTerm") || "";
+      if (searchValue !== currentParam) {
+        updateMultiSearchParams({
+          searchTerm: searchValue || null,
+          page: null,
+        });
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchValue, updateMultiSearchParams, isMounted, searchParams]);
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -39,6 +72,8 @@ const UsersTable: React.FC<UsersTableProps> = ({ users = [], meta }) => {
   const table = useReactTable<IUser>({
     data: users || [],
     columns: userTableColumns as ColumnDef<IUser>[],
+    manualFiltering: true,
+    manualPagination: true,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -62,7 +97,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ users = [], meta }) => {
         {/* Total Users */}
         <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 h-[120px] flex flex-col justify-between hover:border-[#00ADEF]/30 transition-all duration-300 shadow-md">
           <span className="text-[28px] font-extrabold text-[#00ADEF] tracking-tight leading-none">
-            36,412
+            {totalUsers.toLocaleString()}
           </span>
           <span className="text-xs font-semibold text-[#64748b] tracking-wide">
             Total Users
@@ -71,7 +106,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ users = [], meta }) => {
         {/* Active Users */}
         <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 h-[120px] flex flex-col justify-between hover:border-[#10B981]/30 transition-all duration-300 shadow-md">
           <span className="text-[28px] font-extrabold text-[#10B981] tracking-tight leading-none">
-            30,248
+            {activeUsers.toLocaleString()}
           </span>
           <span className="text-xs font-semibold text-[#64748b] tracking-wide">
             Active
@@ -80,7 +115,7 @@ const UsersTable: React.FC<UsersTableProps> = ({ users = [], meta }) => {
         {/* Suspended Users */}
         <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 h-[120px] flex flex-col justify-between hover:border-[#f59e0b]/30 transition-all duration-300 shadow-md">
           <span className="text-[28px] font-extrabold text-[#f59e0b] tracking-tight leading-none">
-            184
+            {suspendedUsers.toLocaleString()}
           </span>
           <span className="text-xs font-semibold text-[#64748b] tracking-wide">
             Suspended
@@ -99,12 +134,8 @@ const UsersTable: React.FC<UsersTableProps> = ({ users = [], meta }) => {
               type="text"
               placeholder="Search users by name or email..."
               className="bg-[#07080a] border border-[#1b1e25] text-white rounded-xl h-11 w-full pl-11 pr-4 placeholder:text-[#64748b] focus-visible:ring-[#00ADEF]/20 text-xs transition-colors"
-              onChange={(e) =>
-                updateMultiSearchParams({
-                  searchTerm: e.currentTarget.value || null,
-                  page: null,
-                })
-              }
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
             />
           </div>
           {/* Action Filter Buttons */}

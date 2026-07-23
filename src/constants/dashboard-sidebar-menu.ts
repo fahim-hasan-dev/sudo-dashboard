@@ -21,10 +21,6 @@ export const sidebarMenu = {
           title: "All Users",
           url: "/users",
         },
-        {
-          title: "KYC Verification",
-          url: "/users/kyc",
-        },
       ],
     },
     {

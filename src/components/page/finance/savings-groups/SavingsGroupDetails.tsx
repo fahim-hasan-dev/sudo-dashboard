@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Users,
@@ -8,8 +8,8 @@ import {
   Calendar,
   RotateCw,
   DollarSign,
-  Check,
-  X,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
 import {
@@ -20,383 +20,211 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getImageUrl } from "@/utils/image";
+
+interface GroupDetailsResponse {
+  group?: {
+    _id: string;
+    name: string;
+    status: string;
+    visibility: string;
+    contributionAmount: number;
+    targetPoolAmount: number;
+    targetedMembers: number;
+    paymentFrequency: string;
+    totalCycles: number;
+    startDate: string;
+    createdAt?: string;
+    members?: Array<{
+      _id: string;
+      fullName?: string;
+      email?: string;
+      image?: string;
+    }>;
+    admin?: { _id: string; fullName?: string; email?: string } | string;
+    rotationSchedule?: Array<{
+      periodNumber: number;
+      cycleNumber: number;
+      receiverId?: { _id: string; fullName?: string; email?: string } | string;
+      payoutDate: string;
+      status: string;
+    }>;
+  };
+  currentPeriod?: number;
+  currentCycle?: number;
+  currentReceiver?: { _id: string; fullName?: string; email?: string };
+  progress?: number;
+  currentPeriodExpectedAmount?: number;
+  currentPeriodCollectedAmount?: number;
+  totalPeriods?: number;
+}
 
 interface SavingsGroupDetailsProps {
   groupId: string;
+  initialDetails?: GroupDetailsResponse;
 }
 
-interface MemberRow {
-  position: string;
-  name: string;
-  id: string;
-  initials: string;
-  avatarBg: string;
-  payment: "Paid" | "Not Paid";
-  payout: "Received" | "Pending";
-  joined: string;
-}
-
-interface TimelineItem {
-  round: number;
-  name: string;
-  date: string;
-  amount: string;
-  status: "Completed" | "Upcoming";
-  isDone: boolean;
-}
-
-const mockMembers: MemberRow[] = [
-  {
-    position: "#1",
-    name: "Emeka Eze",
-    id: "U-4830",
-    initials: "EE",
-    avatarBg: "bg-purple-600 text-white",
-    payment: "Paid",
-    payout: "Received",
-    joined: "2025-05-01",
-  },
-  {
-    position: "#2",
-    name: "Blessing Nwankwo",
-    id: "U-4822",
-    initials: "BN",
-    avatarBg: "bg-blue-600 text-white",
-    payment: "Paid",
-    payout: "Pending",
-    joined: "2025-05-01",
-  },
-  {
-    position: "#3",
-    name: "Amara Okonkwo",
-    id: "U-4821",
-    initials: "AO",
-    avatarBg: "bg-emerald-600 text-white",
-    payment: "Paid",
-    payout: "Pending",
-    joined: "2025-05-01",
-  },
-  {
-    position: "#4",
-    name: "James Oduya",
-    id: "U-4827",
-    initials: "JO",
-    avatarBg: "bg-[#d946ef] text-white",
-    payment: "Paid",
-    payout: "Pending",
-    joined: "2025-05-01",
-  },
-  {
-    position: "#5",
-    name: "Priya Sharma",
-    id: "U-4826",
-    initials: "PS",
-    avatarBg: "bg-amber-500 text-white",
-    payment: "Not Paid",
-    payout: "Pending",
-    joined: "2025-05-01",
-  },
-  {
-    position: "#6",
-    name: "Ana Rodrigues",
-    id: "U-4828",
-    initials: "AR",
-    avatarBg: "bg-cyan-600 text-white",
-    payment: "Paid",
-    payout: "Pending",
-    joined: "2025-05-01",
-  },
-];
-
-const mockTimeline: TimelineItem[] = [
-  {
-    round: 1,
-    name: "Emeka Eze",
-    date: "2025-08-14",
-    amount: "$6,000",
-    status: "Completed",
-    isDone: true,
-  },
-  {
-    round: 2,
-    name: "Blessing Nwankwo",
-    date: "2025-07-14",
-    amount: "$6,000",
-    status: "Completed",
-    isDone: true,
-  },
-  {
-    round: 3,
-    name: "Amara Okonkwo",
-    date: "2025-08-14",
-    amount: "$6,000",
-    status: "Completed",
-    isDone: true,
-  },
-  {
-    round: 4,
-    name: "James Oduya",
-    date: "2025-09-14",
-    amount: "$6,000",
-    status: "Completed",
-    isDone: true,
-  },
-  {
-    round: 5,
-    name: "Priya Sharma",
-    date: "2025-10-14",
-    amount: "$6,000",
-    status: "Upcoming",
-    isDone: false,
-  },
-  {
-    round: 6,
-    name: "Ana Rodrigues",
-    date: "2025-11-14",
-    amount: "$6,000",
-    status: "Upcoming",
-    isDone: false,
-  },
-];
-
-const SavingsGroupDetails: React.FC<SavingsGroupDetailsProps> = ({ groupId }) => {
+const SavingsGroupDetails: React.FC<SavingsGroupDetailsProps> = ({
+  groupId,
+  initialDetails,
+}) => {
   const updateSearchParams = useUpdateSearchParams();
-  const [activeTab, setActiveTab] = useState<"members" | "timeline">("members");
+  const [details, setDetails] = useState<GroupDetailsResponse | undefined>(initialDetails);
 
-  const groupMeta = {
-    id: groupId,
-    name: groupId === "G-1002" ? "Alpha Investment Circle" : groupId === "G-1003" ? "UK Diaspora Fund" : "Lagos Tech Savers",
-    flag: groupId === "G-1002" ? "🇦🇪" : groupId === "G-1003" ? "🇬🇧" : "🇳🇬",
-    status: "Active",
+  useEffect(() => {
+    if (initialDetails) {
+      setDetails(initialDetails);
+    }
+  }, [initialDetails]);
+
+  const group = details?.group;
+  const adminName =
+    typeof group?.admin === "object"
+      ? group.admin?.fullName || group.admin?.email
+      : "Admin";
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn pb-8 text-white select-text">
-      {/* Back button action row */}
-      <div className="select-none">
+      {/* Back Button */}
+      <div>
         <button
           onClick={() => updateSearchParams("groupId", null)}
           className="flex items-center gap-2 bg-[#0b131e]/40 border border-[#1b1e25] text-zinc-300 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-95"
         >
-          <ArrowLeft className="size-3.5" /> Back to Groups
+          <ArrowLeft className="size-3.5" /> Back to Savings Groups
         </button>
       </div>
 
-      {/* Group Title and Code Header */}
-      <div className="flex flex-col gap-1 select-none">
-        <div className="flex items-center gap-2.5">
-          <span className="text-2xl leading-none">{groupMeta.flag}</span>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight leading-none">
-            {groupMeta.name}
-          </h1>
-          <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold leading-none">
-            {groupMeta.status}
-          </span>
-        </div>
-        <span className="text-[10px] font-bold text-[#00ADEF] tracking-wider uppercase leading-none mt-1">
-          {groupMeta.id}
-        </span>
-      </div>
-
-      {/* Info Stats Cards Grid (6 columns) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 select-none">
-        {/* Members */}
-        <div className="bg-[#0e1015] border border-[#1b1e25] p-5 rounded-xl flex flex-col gap-2 hover:border-[#00ADEF]/30 transition-all">
-          <span className="text-[10px] font-bold text-[#00ADEF] uppercase tracking-wider flex items-center gap-1.5 leading-none">
-            <Users className="size-3.5" /> Members
-          </span>
-          <span className="text-white text-lg font-extrabold leading-none mt-1 block">
-            12
-          </span>
-        </div>
-
-        {/* Contribution/Cycle */}
-        <div className="bg-[#0e1015] border border-[#1b1e25] p-5 rounded-xl flex flex-col gap-2 hover:border-[#10B981]/30 transition-all">
-          <span className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider flex items-center gap-1.5 leading-none">
-            <DollarSign className="size-3.5" /> Contribution/Cycle
-          </span>
-          <span className="text-white text-lg font-extrabold leading-none mt-1 block">
-            $500
-          </span>
+      {/* Header Info Card */}
+      <div className="bg-[#0e1015] border border-[#1b1e25] rounded-2xl p-6 shadow-md flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1.5 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-extrabold text-white tracking-tight">
+                {group?.name || "Savings Group Details"}
+              </h1>
+              <span
+                className={`px-3 py-0.5 text-[10px] font-extrabold uppercase rounded-full leading-none border ${
+                  group?.status === "active"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+                    : group?.status === "completed"
+                    ? "bg-purple-500/10 text-purple-400 border-purple-500/25"
+                    : "bg-[#00ADEF]/10 text-[#00ADEF] border-[#00ADEF]/25"
+                }`}
+              >
+                {group?.status || "Pending"}
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-zinc-400 font-medium flex-wrap">
+              <span>ID: <span className="font-mono text-zinc-300">{group?._id || groupId}</span></span>
+              <span>•</span>
+              <span>Creator: <span className="text-white font-semibold">{adminName}</span></span>
+              <span>•</span>
+              <span>Frequency: <span className="text-white font-semibold capitalize">{group?.paymentFrequency || "N/A"}</span></span>
+            </div>
+          </div>
         </div>
 
-        {/* Total Pool */}
-        <div className="bg-[#0e1015] border border-[#1b1e25] p-5 rounded-xl flex flex-col gap-2 hover:border-[#00ADEF]/30 transition-all">
-          <span className="text-[10px] font-bold text-[#00ADEF] uppercase tracking-wider flex items-center gap-1.5 leading-none">
-            <Wallet className="size-3.5" /> Total Pool
-          </span>
-          <span className="text-white text-lg font-extrabold leading-none mt-1 block">
-            $6,000
-          </span>
-        </div>
+        <div className="h-px bg-[#1b1e25]/60 w-full" />
 
-        {/* Cycle Type */}
-        <div className="bg-[#0e1015] border border-[#1b1e25] p-5 rounded-xl flex flex-col gap-2 hover:border-[#eab308]/30 transition-all">
-          <span className="text-[10px] font-bold text-[#eab308] uppercase tracking-wider flex items-center gap-1.5 leading-none">
-            <Calendar className="size-3.5" /> Cycle Type
-          </span>
-          <span className="text-white text-lg font-extrabold leading-none mt-1 block truncate">
-            Monthly
-          </span>
-        </div>
-
-        {/* Total Cycle */}
-        <div className="bg-[#0e1015] border border-[#1b1e25] p-5 rounded-xl flex flex-col gap-2 hover:border-[#eab308]/30 transition-all">
-          <span className="text-[10px] font-bold text-[#eab308] uppercase tracking-wider flex items-center gap-1.5 leading-none">
-            <RotateCw className="size-3.5" /> Total Cycle
-          </span>
-          <span className="text-white text-lg font-extrabold leading-none mt-1 block">
-            3
-          </span>
-        </div>
-
-        {/* Current Cycle */}
-        <div className="bg-[#0e1015] border border-[#1b1e25] p-5 rounded-xl flex flex-col gap-2 hover:border-[#eab308]/30 transition-all">
-          <span className="text-[10px] font-bold text-[#eab308] uppercase tracking-wider flex items-center gap-1.5 leading-none">
-            <Calendar className="size-3.5" /> Current Cycle
-          </span>
-          <span className="text-white text-lg font-extrabold leading-none mt-1 block">
-            2
-          </span>
-        </div>
-      </div>
-
-      {/* Completion Progress Container */}
-      <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 shadow-md flex flex-col md:flex-row items-center justify-between gap-6 w-full">
-        {/* Progress bar info */}
-        <div className="flex-1 flex flex-col gap-3 w-full">
-          <div className="flex justify-between items-center select-none">
-            <span className="text-xs font-bold text-white uppercase tracking-wider">
-              Completion Progress
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-[#07080a] border border-[#1b1e25] p-4 rounded-xl flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider flex items-center gap-1.5">
+              <DollarSign className="size-3.5 text-[#00ADEF]" /> Contribution
             </span>
-            <span className="text-xs font-bold text-[#10B981]">67%</span>
+            <span className="text-white text-lg font-extrabold mt-1">
+              ${group?.contributionAmount?.toLocaleString() || "0"}
+            </span>
           </div>
-          {/* Progress bar background line */}
-          <div className="w-full h-2 bg-[#07080a] border border-[#1b1e25] rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#00ADEF] to-[#10B981]" style={{ width: "67%" }} />
-          </div>
-        </div>
 
-        {/* Recipient Details Badge */}
-        <div className="bg-[#0a201c] border border-[#10b981]/20 px-5 py-3 rounded-xl flex flex-col gap-1 min-w-[220px] select-none w-full md:w-auto">
-          <span className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider leading-none">
-            Current Payout Recipient
-          </span>
-          <span className="text-xs font-extrabold text-[#10B981] truncate mt-0.5 leading-none">
-            Emeka Eze
-          </span>
+          <div className="bg-[#07080a] border border-[#1b1e25] p-4 rounded-xl flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider flex items-center gap-1.5">
+              <Wallet className="size-3.5 text-emerald-400" /> Target Pool
+            </span>
+            <span className="text-emerald-400 text-lg font-extrabold mt-1">
+              ${group?.targetPoolAmount?.toLocaleString() || "0"}
+            </span>
+          </div>
+
+          <div className="bg-[#07080a] border border-[#1b1e25] p-4 rounded-xl flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="size-3.5 text-purple-400" /> Total Members
+            </span>
+            <span className="text-white text-lg font-extrabold mt-1">
+              {group?.members?.length || 0} {group?.targetedMembers ? `/ ${group.targetedMembers}` : ""}
+            </span>
+          </div>
+
+          <div className="bg-[#07080a] border border-[#1b1e25] p-4 rounded-xl flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider flex items-center gap-1.5">
+              <RotateCw className="size-3.5 text-amber-400" /> Total Cycles
+            </span>
+            <span className="text-white text-lg font-extrabold mt-1">
+              {group?.totalCycles || 1}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Tabs Menu selectors */}
-      <div className="flex border-b border-[#1b1e25] select-none mt-2">
-        <button
-          onClick={() => setActiveTab("members")}
-          className={`px-6 py-3 text-sm font-semibold cursor-pointer border-b-2 transition-all duration-200 leading-none ${
-            activeTab === "members"
-              ? "border-[#00ADEF] text-[#00ADEF]"
-              : "border-transparent text-[#64748b] hover:text-zinc-200"
-          }`}
-        >
-          Members
-        </button>
-        <button
-          onClick={() => setActiveTab("timeline")}
-          className={`px-6 py-3 text-sm font-semibold cursor-pointer border-b-2 transition-all duration-200 leading-none ${
-            activeTab === "timeline"
-              ? "border-[#00ADEF] text-[#00ADEF]"
-              : "border-transparent text-[#64748b] hover:text-zinc-200"
-          }`}
-        >
-          Payout Timeline
-        </button>
-      </div>
+      {/* Rotation Schedule Table Section */}
+      <div className="bg-[#0e1015] border border-[#1b1e25] rounded-2xl p-6 shadow-md flex flex-col gap-4">
+        <h2 className="text-xs font-bold text-white uppercase tracking-wider select-none leading-none border-b border-[#1b1e25] pb-3 flex items-center gap-2">
+          <Calendar className="size-4 text-[#00ADEF]" /> Rotation Schedule ({group?.rotationSchedule?.length || 0})
+        </h2>
 
-      {/* Tab Panels */}
-      <div className="w-full">
-        {/* MEMBERS LIST TABLE TAB */}
-        {activeTab === "members" && (
-          <div className="rounded-xl border border-[#1b1e25]/60 bg-[#07080a]/30 overflow-hidden w-full">
+        {group?.rotationSchedule && group.rotationSchedule.length > 0 ? (
+          <div className="rounded-xl border border-[#1b1e25] overflow-hidden">
             <Table>
-              <TableHeader className="bg-[#0f111a] border-b border-[#1b1e25]/65">
-                <TableRow className="hover:bg-transparent border-none h-12">
-                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
-                    Position
-                  </TableHead>
-                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
-                    Member
-                  </TableHead>
-                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
-                    This Cycle Payment
-                  </TableHead>
-                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
-                    Payout Received
-                  </TableHead>
-                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
-                    Joined
-                  </TableHead>
+              <TableHeader className="bg-[#07080a]">
+                <TableRow className="border-b border-[#1b1e25] hover:bg-transparent">
+                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-xs">Period #</TableHead>
+                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-xs">Cycle #</TableHead>
+                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-xs">Payout Receiver</TableHead>
+                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-xs">Payout Date</TableHead>
+                  <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-xs">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockMembers.map((member) => {
-                  const isPaid = member.payment === "Paid";
-                  const isReceived = member.payout === "Received";
+                {group.rotationSchedule.map((item, idx) => {
+                  const receiver = typeof item.receiverId === "object" ? item.receiverId : null;
+                  const receiverName = receiver?.fullName || receiver?.email || "Receiver";
+
                   return (
-                    <TableRow
-                      key={member.id}
-                      className="border-b border-[#1b1e25]/50 hover:bg-[#121520]/25 h-16 transition-colors"
-                    >
-                      {/* Position */}
-                      <TableCell className="py-3 px-4 font-semibold text-[#00ADEF] text-left border-none">
-                        {member.position}
+                    <TableRow key={idx} className="border-b border-[#1b1e25]/60 hover:bg-[#121520]/40">
+                      <TableCell className="py-3 px-4 font-bold text-white text-xs">
+                        Period #{item.periodNumber}
                       </TableCell>
-
-                      {/* Profile details */}
-                      <TableCell className="py-3 px-4 text-left border-none">
-                        <div className="flex items-center gap-3">
-                          <div className={`size-9 rounded-full flex items-center justify-center font-bold text-xs select-none shrink-0 ${member.avatarBg}`}>
-                            {member.initials}
-                          </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-semibold text-white text-[13px] tracking-tight leading-none">
-                              {member.name}
-                            </span>
-                            <span className="text-[10px] text-zinc-500 font-semibold leading-none mt-0.5 select-none">
-                              {member.id}
-                            </span>
-                          </div>
-                        </div>
+                      <TableCell className="py-3 px-4 font-semibold text-zinc-300 text-xs">
+                        Cycle #{item.cycleNumber}
                       </TableCell>
-
-                      {/* Payment Status */}
-                      <TableCell className="py-3 px-4 text-left border-none select-none">
-                        {isPaid ? (
-                          <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 w-fit">
-                            <Check className="size-3" /> Paid $500
-                          </span>
-                        ) : (
-                          <span className="bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/20 px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 w-fit">
-                            <X className="size-3" /> Not Paid
-                          </span>
-                        )}
+                      <TableCell className="py-3 px-4 font-semibold text-[#00ADEF] text-xs">
+                        {receiverName}
                       </TableCell>
-
-                      {/* Payout Status */}
-                      <TableCell className="py-3 px-4 text-left border-none select-none">
-                        {isReceived ? (
-                          <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                            Received
-                          </span>
-                        ) : (
-                          <span className="bg-zinc-850/80 text-zinc-500 border border-zinc-800/40 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                            Pending
-                          </span>
-                        )}
+                      <TableCell className="py-3 px-4 text-zinc-400 text-xs font-medium">
+                        {new Date(item.payoutDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </TableCell>
-
-                      {/* Joined Date */}
-                      <TableCell className="py-3 px-4 text-zinc-500 font-semibold text-left border-none select-none">
-                        {member.joined}
+                      <TableCell className="py-3 px-4 text-xs select-none">
+                        <span
+                          className={`px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full border ${
+                            item.status === "completed"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
                       </TableCell>
                     </TableRow>
                   );
@@ -404,52 +232,56 @@ const SavingsGroupDetails: React.FC<SavingsGroupDetailsProps> = ({ groupId }) =>
               </TableBody>
             </Table>
           </div>
-        )}        {/* TIMELINE ROUNDS LIST TAB */}
-        {activeTab === "timeline" && (
-          <div className="flex flex-col gap-4 w-full">
-            {mockTimeline.map((item) => (
-              <div
-                key={item.round}
-                className="bg-[#0e1015] border border-[#1b1e25] rounded-xl px-6 py-4.5 flex items-center justify-between gap-4 hover:border-zinc-800 transition-colors animate-fadeIn"
-              >
-                {/* Timeline circle and detail block */}
-                <div className="flex items-center gap-4">
-                  {/* Round number circle */}
-                  <div
-                    className={`size-10 rounded-full border flex items-center justify-center font-bold text-sm select-none shrink-0 ${
-                      item.isDone
-                        ? "bg-[#10B981]/10 border-[#10B981]/20 text-[#10B981]"
-                        : "bg-[#00ADEF]/10 border-[#00ADEF]/20 text-[#00ADEF]"
-                    }`}
-                  >
-                    {item.round}
-                  </div>
-                  {/* Recipient name and target date */}
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold text-white text-sm tracking-tight leading-none">
-                      {item.name}
-                    </span>
-                    <span className="text-[11px] text-zinc-400 font-medium leading-none select-none mt-1.5">
-                      Payout Date: {item.date}
-                    </span>
-                  </div>
-                </div>
+        ) : (
+          <div className="text-center text-[#64748b] font-medium text-sm py-8 bg-[#07080a] rounded-xl border border-[#1b1e25]">
+            No rotation schedule generated yet. Rotation will start when the group is full and activated.
+          </div>
+        )}
+      </div>
 
-                {/* Amount and payout state indicator */}
-                <div className="flex items-center gap-4 select-none">
-                  <span className="text-sm font-bold text-[#10B981]">{item.amount}</span>
-                  <span
-                    className={`px-3 py-1 text-[10px] font-bold rounded-full border leading-none tracking-wide ${
-                      item.isDone
-                        ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20"
-                        : "bg-[#00ADEF]/10 text-[#00ADEF] border-[#00ADEF]/20"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
+      {/* Group Members List Section */}
+      <div className="bg-[#0e1015] border border-[#1b1e25] rounded-2xl p-6 shadow-md flex flex-col gap-4">
+        <h2 className="text-xs font-bold text-white uppercase tracking-wider select-none leading-none border-b border-[#1b1e25] pb-3 flex items-center gap-2">
+          <Users className="size-4 text-purple-400" /> Group Members ({group?.members?.length || 0})
+        </h2>
+
+        {group?.members && group.members.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {group.members.map((member: any, idx: number) => {
+              const isObject = typeof member === "object" && member !== null;
+              const name = isObject ? member.fullName || member.email : "Member";
+              const email = isObject ? member.email || "N/A" : (typeof member === "string" ? `ID: ${member}` : "N/A");
+              const avatarImage = isObject ? member.image || member.photo : undefined;
+              const memberId = isObject ? member._id : member;
+
+              return (
+                <div
+                  key={memberId || idx}
+                  className="bg-[#07080a] border border-[#1b1e25] p-4 rounded-xl flex items-center gap-3 hover:border-[#00ADEF]/30 transition-all"
+                >
+                  <div className="size-10 rounded-full bg-purple-600/20 text-[#c084fc] flex items-center justify-center font-extrabold text-sm shrink-0 overflow-hidden border border-purple-500/20">
+                    {avatarImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={getImageUrl(avatarImage)} alt={name} className="w-full h-full object-cover" />
+                    ) : (
+                      getInitials(name !== "Member" ? name : email)
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-white text-xs truncate">
+                      {name}
+                    </span>
+                    <span className="text-[11px] text-zinc-500 truncate">
+                      {email}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center text-[#64748b] font-medium text-sm py-8 bg-[#07080a] rounded-xl border border-[#1b1e25]">
+            No members in this group yet.
           </div>
         )}
       </div>

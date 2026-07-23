@@ -16,131 +16,68 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Download, Search, CheckCircle2 } from "lucide-react";
+import { Search, ExternalLink, ArrowUpRight, ArrowDownLeft, X } from "lucide-react";
 
-interface Transaction {
-  id: string;
-  user: string;
-  group: string;
-  amount: string;
-  date: string;
-  status: "Completed" | "Pending" | "Failed";
-  isGreen?: boolean;
-  paymentMethod?: string;
-  description?: string;
+interface ContributionItem {
+  _id: string;
+  transactionId?: string;
+  stripeSessionId?: string;
+  amount: number;
+  commissionAmount?: number;
+  transferAmount?: number;
+  periodNumber?: number;
+  status: string;
+  paymentDate?: string;
+  createdAt?: string;
+  groupId?: {
+    _id?: string;
+    name?: string;
+    targetPoolAmount?: number;
+    paymentFrequency?: string;
+    contributionAmount?: number;
+  };
+  senderId?: {
+    _id?: string;
+    fullName?: string;
+    email?: string;
+    image?: string;
+  } | string;
+  receiverId?: {
+    _id?: string;
+    fullName?: string;
+    email?: string;
+    image?: string;
+  } | string;
 }
 
-const initialTransactions: Transaction[] = [
-  {
-    id: "TXN-98421",
-    user: "Amara Okonkwo",
-    group: "G-1001",
-    amount: "$500",
-    date: "2026-06-10 09:14",
-    status: "Completed",
-    paymentMethod: "Bank Transfer (GTBank)",
-    description: "Cycle 2 contribution for Lagos Tech Savers",
-  },
-  {
-    id: "TXN-98422",
-    user: "Fatima Al-Rashid",
-    group: "G-1002",
-    amount: "$2,400",
-    date: "2026-06-10 08:42",
-    status: "Completed",
-    isGreen: true,
-    paymentMethod: "Card (Visa *4321)",
-    description: "Cycle 2 contribution for Alpha Investment Circle",
-  },
-  {
-    id: "TXN-98423",
-    user: "Marcus Chen",
-    group: "G-1003",
-    amount: "$200",
-    date: "2026-06-10 07:58",
-    status: "Completed",
-    paymentMethod: "Card (Mastercard *8812)",
-    description: "Cycle 1 contribution for UK Diaspora Fund",
-  },
-  {
-    id: "TXN-98424",
-    user: "Priya Sharma",
-    group: "G-1005",
-    amount: "$750",
-    date: "2026-06-09 23:41",
-    status: "Completed",
-    paymentMethod: "UPI Payment",
-    description: "Cycle 2 contribution for UAE Diaspora Fund",
-  },
-  {
-    id: "TXN-98425",
-    user: "James Oduya",
-    group: "G-1001",
-    amount: "$500",
-    date: "2026-06-09 21:10",
-    status: "Completed",
-    paymentMethod: "Card (Visa *0987)",
-    description: "Cycle 2 contribution for Lagos Tech Savers",
-  },
-  {
-    id: "TXN-98426",
-    user: "Blessing Nwankwo",
-    group: "G-1001",
-    amount: "$6,000",
-    date: "2026-06-09 18:04",
-    status: "Completed",
-    isGreen: true,
-    paymentMethod: "Bank Transfer (Access Bank)",
-    description: "Group pool pay-out release for Lagos Tech Savers",
-  },
-  {
-    id: "TXN-98428",
-    user: "Ana Rodrigues",
-    group: "G-1003",
-    amount: "$200",
-    date: "2026-06-09 14:55",
-    status: "Completed",
-    paymentMethod: "Card (Visa *2234)",
-    description: "Cycle 1 contribution for UK Diaspora Fund",
-  },
-  {
-    id: "TXN-98429",
-    user: "Yemi Adeyemi",
-    group: "G-1006",
-    amount: "$900",
-    date: "2026-06-09 11:30",
-    status: "Completed",
-    isGreen: true,
-    paymentMethod: "Card (Mastercard *5432)",
-    description: "Cycle 3 contribution for UK Diaspora Fund",
-  },
-  {
-    id: "TXN-98430",
-    user: "Emeka Eze",
-    group: "G-1001",
-    amount: "$500",
-    date: "2026-06-09 09:00",
-    status: "Completed",
-    paymentMethod: "Card (Visa *1111)",
-    description: "Cycle 2 contribution for Lagos Tech Savers",
-  },
-  {
-    id: "TXN-98427",
-    user: "Unknown User",
-    group: "G-1007",
-    amount: "$500",
-    date: "2026-06-09 16:22",
-    status: "Completed",
-    paymentMethod: "Mobile Money",
-    description: "Ad-hoc savings cycle contribution",
-  },
-];
+interface TransactionsProps {
+  initialContributions?: ContributionItem[];
+  meta?: {
+    page: number;
+    totalPage: number;
+    total: number;
+  };
+  initialStats?: {
+    totalVolume: number;
+    completedCount: number;
+    totalCount: number;
+  };
+}
 
-const Transactions = () => {
-  const [currentDate, setCurrentDate] = useState("Wednesday, June 10, 2026");
+const Transactions: React.FC<TransactionsProps> = ({
+  initialContributions = [],
+  meta,
+  initialStats,
+}) => {
+  const [currentDate, setCurrentDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [contributions, setContributions] = useState<ContributionItem[]>(initialContributions);
+  const [selectedTxn, setSelectedTxn] = useState<ContributionItem | null>(null);
+
+  useEffect(() => {
+    setContributions(initialContributions);
+  }, [initialContributions]);
 
   useEffect(() => {
     const formatted = new Date().toLocaleDateString("en-US", {
@@ -152,87 +89,107 @@ const Transactions = () => {
     setCurrentDate(formatted);
   }, []);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3000);
-  };
+  const filteredContributions = contributions.filter((txn) => {
+    const senderName =
+      (typeof txn.senderId === "object"
+        ? txn.senderId?.fullName || txn.senderId?.email
+        : txn.senderId) || "";
+    const receiverName =
+      (typeof txn.receiverId === "object"
+        ? txn.receiverId?.fullName || txn.receiverId?.email
+        : txn.receiverId) || "";
+    const groupName = txn.groupId?.name || "";
+    const txnId = txn.transactionId || txn._id;
 
-  const handleExport = () => {
-    showToast("Transactions exported successfully as CSV!");
-  };
+    const matchesSearch =
+      txnId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      receiverName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      groupName.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const filteredTransactions = initialTransactions.filter(
-    (txn) =>
-      txn.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      txn.group.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    const matchesStatus =
+      statusFilter === "all" ||
+      txn.status.toLowerCase() === statusFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalVolume = initialStats?.totalVolume || 0;
+  const completedCount = initialStats?.completedCount || 0;
 
   return (
     <div className="w-full flex flex-col gap-6 animate-fadeIn pb-8 text-white select-text relative">
-      {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-[#0a201c] border border-emerald-500/30 text-[#10B981] px-4 py-3 rounded-xl flex items-center gap-2.5 shadow-2xl z-50 animate-slideIn">
-          <CheckCircle2 className="size-4" />
-          <span className="text-xs font-bold">{toastMessage}</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-extrabold text-white tracking-tight leading-none">
           Transaction Management
         </h1>
-        <span className="text-xs font-semibold text-zinc-550 tracking-wide mt-1 block">
+        <span className="text-xs font-semibold text-zinc-500 tracking-wide mt-1 block">
           {currentDate}
         </span>
       </div>
 
       {/* Stats Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 select-none">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 select-none">
         {/* Total Volume */}
-        <div className="bg-[#0e1015]/60 border border-[#1b1e25] rounded-2xl p-5 flex flex-col gap-1.5 hover:border-[#00ADEF]/30 transition-all duration-300 shadow-md">
-          <span className="text-2xl font-extrabold text-[#00ADEF] tracking-tight leading-none">
-            $12,450
+        <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 h-[120px] flex flex-col justify-between hover:border-[#00ADEF]/30 transition-all duration-300 shadow-md">
+          <span className="text-[28px] font-extrabold text-[#00ADEF] tracking-tight leading-none">
+            ${totalVolume.toLocaleString()}
           </span>
-          <span className="text-xs font-semibold text-zinc-500 tracking-wide mt-1">
+          <span className="text-xs font-semibold text-[#64748b] tracking-wide">
             Total Volume
           </span>
         </div>
         {/* Completed */}
-        <div className="bg-[#0e1015]/60 border border-[#1b1e25] rounded-2xl p-5 flex flex-col gap-1.5 hover:border-[#10B981]/30 transition-all duration-300 shadow-md">
-          <span className="text-2xl font-extrabold text-[#10B981] tracking-tight leading-none">
-            5
+        <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 h-[120px] flex flex-col justify-between hover:border-[#10B981]/30 transition-all duration-300 shadow-md">
+          <span className="text-[28px] font-extrabold text-[#10B981] tracking-tight leading-none">
+            {completedCount}
           </span>
-          <span className="text-xs font-semibold text-zinc-500 tracking-wide mt-1">
-            Completed
+          <span className="text-xs font-semibold text-[#64748b] tracking-wide">
+            Completed Transactions
+          </span>
+        </div>
+        {/* Total Count */}
+        <div className="bg-[#0e1015] border border-[#1b1e25] rounded-xl p-6 h-[120px] flex flex-col justify-between hover:border-[#c084fc]/30 transition-all duration-300 shadow-md">
+          <span className="text-[28px] font-extrabold text-[#c084fc] tracking-tight leading-none">
+            {meta?.total || contributions.length}
+          </span>
+          <span className="text-xs font-semibold text-[#64748b] tracking-wide">
+            Total Transactions Record
           </span>
         </div>
       </div>
 
-      {/* Search Input and Export Area */}
-      <div className="flex items-center gap-4 select-none w-full">
+      {/* Search Input and Status Filter */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 select-none w-full">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
           <input
             type="text"
-            placeholder="Search by TXN ID or user..."
+            placeholder="Search by Transaction ID, user name, or group..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#08090d] border border-[#1b1e25] text-zinc-200 placeholder-zinc-500 pl-10 pr-4 py-3 rounded-xl text-xs font-semibold focus:outline-none focus:border-zinc-700 transition-colors"
           />
         </div>
-        {/* Export Button */}
-        <button
-          onClick={handleExport}
-          className="bg-emerald-500/10 hover:bg-[#10B981]/20 border border-[#10B981]/20 text-emerald-450 hover:text-[#10B981] px-4.5 py-3 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all duration-200 cursor-pointer select-none active:scale-95 shrink-0"
-        >
-          <Download className="size-3.5" />
-          Export
-        </button>
+
+        {/* Filter Badges */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {["all", "paid", "unpaid", "failed"].map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl capitalize transition-all cursor-pointer ${
+                statusFilter === st
+                  ? "bg-[#00ADEF] text-black shadow-md"
+                  : "bg-[#0e1015] border border-[#1b1e25] text-zinc-400 hover:text-white"
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Main Table */}
@@ -244,7 +201,10 @@ const Transactions = () => {
                 Transaction ID
               </TableHead>
               <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
-                User
+                Sender (Payer)
+              </TableHead>
+              <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
+                Receiver (Beneficiary)
               </TableHead>
               <TableHead className="py-3 px-4 font-semibold text-zinc-500 text-[11px] h-12 text-left border-none">
                 Group
@@ -261,138 +221,176 @@ const Transactions = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.map((txn) => (
-              <TableRow
-                key={txn.id}
-                onClick={() => setSelectedTxn(txn)}
-                className="border-b border-[#1b1e25]/50 hover:bg-[#121520]/25 h-14 transition-colors cursor-pointer"
-              >
-                {/* Transaction ID */}
-                <TableCell className="py-3 px-4 font-semibold text-[#00ADEF] text-left border-none text-[13px]">
-                  {txn.id}
-                </TableCell>
+            {filteredContributions.length > 0 ? (
+              filteredContributions.map((txn) => {
+                const senderName =
+                  typeof txn.senderId === "object"
+                    ? txn.senderId?.fullName || txn.senderId?.email
+                    : "N/A";
+                const receiverName =
+                  typeof txn.receiverId === "object"
+                    ? txn.receiverId?.fullName || txn.receiverId?.email
+                    : "N/A";
+                const dateStr = txn.paymentDate || txn.createdAt;
+                const formattedDate = dateStr
+                  ? new Date(dateStr).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : "N/A";
 
-                {/* User */}
-                <TableCell className="py-3 px-4 text-left border-none text-[13px] font-semibold text-white">
-                  {txn.user}
-                </TableCell>
+                return (
+                  <TableRow
+                    key={txn._id}
+                    onClick={() => setSelectedTxn(txn)}
+                    className="border-b border-[#1b1e25]/50 hover:bg-[#121520]/25 h-14 transition-colors cursor-pointer"
+                  >
+                    {/* Transaction ID */}
+                    <TableCell className="py-3 px-4 font-semibold text-[#00ADEF] text-left border-none text-[13px] font-mono">
+                      {txn.transactionId || txn._id}
+                    </TableCell>
 
-                {/* Group */}
-                <TableCell className="py-3 px-4 text-left border-none text-[13px] font-medium text-zinc-400">
-                  {txn.group}
-                </TableCell>
+                    {/* Sender */}
+                    <TableCell className="py-3 px-4 text-left border-none text-[13px] font-semibold text-white">
+                      {senderName}
+                    </TableCell>
 
-                {/* Amount */}
+                    {/* Receiver */}
+                    <TableCell className="py-3 px-4 text-left border-none text-[13px] font-semibold text-purple-400">
+                      {receiverName}
+                    </TableCell>
+
+                    {/* Group */}
+                    <TableCell className="py-3 px-4 text-left border-none text-[13px] font-medium text-zinc-300">
+                      {txn.groupId?.name || "N/A"}
+                    </TableCell>
+
+                    {/* Amount */}
+                    <TableCell className="py-3 px-4 text-left border-none text-[13px] font-extrabold text-emerald-400">
+                      ${txn.amount?.toLocaleString()}
+                    </TableCell>
+
+                    {/* Date */}
+                    <TableCell className="py-3 px-4 text-zinc-400 font-medium text-left border-none text-[12px]">
+                      {formattedDate}
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell className="py-3 px-4 text-left border-none select-none">
+                      <span
+                        className={`px-2.5 py-1 text-[10px] font-extrabold uppercase rounded-full border ${
+                          txn.status === "paid"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+                            : txn.status === "failed"
+                            ? "bg-red-500/10 text-red-400 border-red-500/25"
+                            : "bg-amber-500/10 text-amber-400 border-amber-500/25"
+                        }`}
+                      >
+                        {txn.status}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
                 <TableCell
-                  className={`py-3 px-4 text-left border-none text-[13px] font-bold ${
-                    txn.isGreen ? "text-[#10B981]" : "text-white"
-                  }`}
+                  colSpan={7}
+                  className="py-12 text-center text-zinc-500 font-medium text-sm border-none"
                 >
-                  {txn.amount}
-                </TableCell>
-
-                {/* Date */}
-                <TableCell className="py-3 px-4 text-zinc-500 font-semibold text-left border-none text-[12px]">
-                  {txn.date}
-                </TableCell>
-
-                {/* Status */}
-                <TableCell className="py-3 px-4 text-left border-none select-none">
-                  <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                    {txn.status}
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))}
-
-            {filteredTransactions.length === 0 && (
-              <TableRow className="border-none hover:bg-transparent">
-                <TableCell
-                  colSpan={6}
-                  className="py-10 text-center text-zinc-500 font-semibold border-none"
-                >
-                  No transactions found matching your search.
+                  No contribution transactions found.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-        {/* Footer Note */}
-        <div className="py-3 border-t border-[#1b1e25]/40 text-center text-[10px] text-zinc-550 font-bold uppercase tracking-wider select-none bg-[#07080a]/10">
-          Click any row to view transaction details - {filteredTransactions.length} transactions shown
-        </div>
       </div>
 
-      {/* Transaction Details Modal/Drawer utilizing standard Dialog */}
-      <Dialog open={selectedTxn !== null} onOpenChange={(open) => { if (!open) setSelectedTxn(null); }}>
-        <DialogContent className="bg-[#0b0d13] border border-[#1b1e25] rounded-2xl max-w-md p-6 text-white shadow-2xl">
-          <DialogHeader className="flex flex-col gap-1 border-b border-[#1b1e25] pb-4">
-            <DialogTitle className="text-base font-extrabold text-white text-left">Transaction Details</DialogTitle>
-            <DialogDescription className="text-[10px] text-[#00ADEF] font-bold uppercase tracking-wider text-left leading-none mt-1">
-              {selectedTxn?.id}
-            </DialogDescription>
+      {/* Transaction Details Dialog */}
+      <Dialog open={!!selectedTxn} onOpenChange={() => setSelectedTxn(null)}>
+        <DialogContent className="bg-[#0e1015] border border-[#1b1e25] text-white max-w-lg rounded-2xl p-6">
+          <DialogHeader className="border-b border-[#1b1e25] pb-4 flex flex-row items-center justify-between">
+            <div className="flex flex-col gap-1">
+              <DialogTitle className="text-lg font-extrabold text-white">
+                Transaction Details
+              </DialogTitle>
+              <DialogDescription className="text-xs font-mono text-[#00ADEF]">
+                ID: {selectedTxn?.transactionId || selectedTxn?._id}
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
           {selectedTxn && (
-            <div className="flex flex-col gap-5 mt-4">
-              {/* Grid of Attributes */}
-              <div className="flex flex-col gap-4">
-                {/* User */}
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-zinc-500 uppercase tracking-wide">User</span>
-                  <span className="font-bold text-white">{selectedTxn.user}</span>
-                </div>
-                {/* Group */}
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-zinc-500 uppercase tracking-wide">Group</span>
-                  <span className="font-bold text-zinc-300">{selectedTxn.group}</span>
-                </div>
-                {/* Amount */}
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-zinc-500 uppercase tracking-wide">Amount</span>
-                  <span
-                    className={`font-extrabold text-sm ${
-                      selectedTxn.isGreen ? "text-[#10B981]" : "text-white"
-                    }`}
-                  >
-                    {selectedTxn.amount}
-                  </span>
-                </div>
-                {/* Date */}
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-zinc-500 uppercase tracking-wide">Date</span>
-                  <span className="font-bold text-zinc-400">{selectedTxn.date}</span>
-                </div>
-                {/* Method */}
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-zinc-500 uppercase tracking-wide">Payment Method</span>
-                  <span className="font-bold text-zinc-300">{selectedTxn.paymentMethod}</span>
-                </div>
-                {/* Status */}
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-semibold text-zinc-500 uppercase tracking-wide">Status</span>
-                  <span className="bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-                    {selectedTxn.status}
-                  </span>
-                </div>
-                {/* Description */}
-                <div className="flex flex-col gap-1.5 mt-2 bg-[#06070a] border border-[#1b1e25]/60 p-3 rounded-xl">
-                  <span className="text-[10px] font-bold text-zinc-550 uppercase tracking-wider">
-                    Description
-                  </span>
-                  <p className="text-zinc-400 text-xs font-medium leading-relaxed text-left">
-                    {selectedTxn.description}
-                  </p>
-                </div>
+            <div className="flex flex-col gap-4 text-xs font-medium pt-2">
+              <div className="flex justify-between items-center py-1">
+                <span className="text-zinc-400">Amount</span>
+                <span className="text-emerald-400 font-extrabold text-base">
+                  ${selectedTxn.amount?.toLocaleString()}
+                </span>
+              </div>
+              <div className="h-px bg-[#1b1e25]" />
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-zinc-400">Payer (Sender)</span>
+                <span className="text-white font-bold">
+                  {typeof selectedTxn.senderId === "object"
+                    ? selectedTxn.senderId?.fullName || selectedTxn.senderId?.email
+                    : "N/A"}
+                </span>
+              </div>
+              <div className="h-px bg-[#1b1e25]" />
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-zinc-400">Beneficiary (Receiver)</span>
+                <span className="text-purple-400 font-bold">
+                  {typeof selectedTxn.receiverId === "object"
+                    ? selectedTxn.receiverId?.fullName || selectedTxn.receiverId?.email
+                    : "N/A"}
+                </span>
+              </div>
+              <div className="h-px bg-[#1b1e25]" />
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-zinc-400">Savings Group</span>
+                <span className="text-white font-bold">
+                  {selectedTxn.groupId?.name || "N/A"}
+                </span>
+              </div>
+              <div className="h-px bg-[#1b1e25]" />
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-zinc-400">Period Number</span>
+                <span className="text-zinc-200 font-bold">
+                  Period #{selectedTxn.periodNumber || 1}
+                </span>
+              </div>
+              <div className="h-px bg-[#1b1e25]" />
+
+              <div className="flex justify-between items-center py-1">
+                <span className="text-zinc-400">Status</span>
+                <span
+                  className={`px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full border ${
+                    selectedTxn.status === "paid"
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+                      : "bg-amber-500/10 text-amber-400 border-amber-500/25"
+                  }`}
+                >
+                  {selectedTxn.status}
+                </span>
               </div>
 
-              {/* Close Action Button */}
-              <button
-                onClick={() => setSelectedTxn(null)}
-                className="w-full bg-[#0b131e]/50 hover:bg-zinc-800 border border-zinc-800 text-white font-bold py-3.5 rounded-xl text-xs flex items-center justify-center transition-all cursor-pointer select-none active:scale-[0.98] mt-2"
-              >
-                Close Details
-              </button>
+              {selectedTxn.stripeSessionId && (
+                <>
+                  <div className="h-px bg-[#1b1e25]" />
+                  <div className="flex flex-col gap-1 py-1">
+                    <span className="text-zinc-400">Stripe Session ID</span>
+                    <span className="text-zinc-300 font-mono text-[11px] break-all select-all bg-[#07080a] p-2 rounded-lg border border-[#1b1e25]">
+                      {selectedTxn.stripeSessionId}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </DialogContent>

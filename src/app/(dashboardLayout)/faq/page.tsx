@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import DeleteModal from "@/components/modals/DeleteModal";
+import { myFetch } from "@/utils/myFetch";
+import { toast } from "react-hot-toast";
 
 interface FAQ {
   id: string;
@@ -12,14 +14,9 @@ interface FAQ {
   answer: string;
 }
 
-const INITIAL_FAQS: FAQ[] = Array.from({ length: 9 }).map((_, index) => ({
-  id: String(index + 1),
-  question: "How do i reset my password?",
-  answer: "To reset your password, navigate to the login page and click 'Forgot your password?' link, then follow the instructions.",
-}));
-
 const FAQPage = () => {
-  const [faqs, setFaqs] = useState<FAQ[]>(INITIAL_FAQS);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
@@ -27,6 +24,30 @@ const FAQPage = () => {
   // Form states
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
+
+  const fetchFaqs = async () => {
+    try {
+      const res = await myFetch("/public/faq/all");
+      if (res.success && Array.isArray(res.data)) {
+        const mappedFaqs: FAQ[] = res.data.map(
+          (item: { _id?: string; id?: string; question: string; answer: string }) => ({
+            id: item._id || item.id || String(Date.now()),
+            question: item.question,
+            answer: item.answer,
+          })
+        );
+        setFaqs(mappedFaqs);
+      }
+    } catch (error) {
+      console.error("Failed to fetch FAQs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFaqs();
+  }, []);
 
   const handleOpenAdd = () => {
     setEditingFAQ(null);
@@ -42,27 +63,66 @@ const FAQPage = () => {
     setIsOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question || !answer) return;
 
-    if (editingFAQ) {
-      // Edit existing FAQ
-      setFaqs(faqs.map(item => item.id === editingFAQ.id ? { ...item, question, answer } : item));
-    } else {
-      // Add new FAQ
-      const newFaq: FAQ = {
-        id: String(Date.now()),
-        question,
-        answer,
-      };
-      setFaqs([newFaq, ...faqs]);
+    try {
+      if (editingFAQ) {
+        // Edit existing FAQ
+        const res = await myFetch(`/public/faq/${editingFAQ.id}`, {
+          method: "PATCH",
+          body: { question, answer },
+        });
+
+        if (res.success) {
+          setFaqs(faqs.map(item => item.id === editingFAQ.id ? { ...item, question, answer } : item));
+          toast.success("FAQ updated successfully!");
+        } else {
+          toast.error(res.message || "Failed to update FAQ");
+        }
+      } else {
+        // Add new FAQ
+        const res = await myFetch("/public/faq", {
+          method: "POST",
+          body: { question, answer },
+        });
+
+        if (res.success && res.data) {
+          const newFaq: FAQ = {
+            id: res.data._id || res.data.id || String(Date.now()),
+            question: res.data.question || question,
+            answer: res.data.answer || answer,
+          };
+          setFaqs([newFaq, ...faqs]);
+          toast.success("FAQ added successfully!");
+        } else {
+          toast.error(res.message || "Failed to add FAQ");
+        }
+      }
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error submitting FAQ:", error);
+      toast.error("Failed to submit FAQ");
     }
-    setIsOpen(false);
   };
 
   const handleDelete = async (id: string) => {
-    setFaqs(faqs.filter(item => item.id !== id));
+    try {
+      const res = await myFetch(`/public/faq/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.success) {
+        setFaqs(faqs.filter(item => item.id !== id));
+        toast.success("FAQ deleted successfully!");
+      } else {
+        toast.error(res.message || "Failed to delete FAQ");
+      }
+    } catch (error) {
+      console.error("Error deleting FAQ:", error);
+      toast.error("Failed to delete FAQ");
+    }
   };
 
   // Filter FAQs based on search
@@ -126,7 +186,13 @@ const FAQPage = () => {
               </tr>
             </thead>
             <tbody className="text-zinc-300 font-medium">
-              {filteredFaqs.length ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="h-24 text-center text-zinc-500 font-bold animate-pulse">
+                    Loading FAQs...
+                  </td>
+                </tr>
+              ) : filteredFaqs.length ? (
                 filteredFaqs.map((item) => (
                   <tr key={item.id} className="border-b border-[#1b1e25]/60 hover:bg-[#121520]/20 h-14">
                     <td className="py-3 px-4 font-semibold text-white max-w-[200px] truncate">

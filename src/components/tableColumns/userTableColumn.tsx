@@ -1,9 +1,12 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Eye, Ban } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
 import { IUser } from "@/types/user";
+import DeleteModal from "@/components/modals/DeleteModal";
+import { myFetch } from "@/utils/myFetch";
+import toast from "react-hot-toast";
 
 // Helper to compute initials from full name
 const getInitials = (name: string) => {
@@ -16,6 +19,25 @@ const getInitials = (name: string) => {
 // Custom Action Cell component to handle query parameter updates dynamically
 const ActionCell = ({ user }: { user: IUser }) => {
   const updateSearchParams = useUpdateSearchParams();
+
+  const handleDeleteUser = async (id: string) => {
+    toast.loading("Deleting user...", { id: "delete-user" });
+    try {
+      const res = await myFetch(`/user/${id}`, {
+        method: "DELETE",
+      });
+      if (res?.success) {
+        toast.success(res?.message || "User deleted successfully", { id: "delete-user" });
+        window.location.reload();
+      } else {
+        toast.error(res?.message || "Failed to delete user", { id: "delete-user" });
+      }
+    } catch (error) {
+      console.error("Delete user error:", error);
+      toast.error("Failed to delete user", { id: "delete-user" });
+    }
+  };
+
   return (
     <div className="flex items-center justify-start gap-3 px-1 select-none">
       <button
@@ -25,32 +47,36 @@ const ActionCell = ({ user }: { user: IUser }) => {
       >
         <Eye className="size-4.5" />
       </button>
-      <button
-        className="text-[#ff3b30] hover:text-[#ff3b30]/80 transition-colors cursor-pointer p-1"
-        title="Suspend User"
-      >
-        <Ban className="size-4.5" />
-      </button>
+      <DeleteModal
+        itemId={user._id}
+        title="Are you sure you want to delete this user?"
+        triggerBtn={
+          <button
+            className="text-[#ff3b30] hover:text-[#ff3b30]/80 transition-colors cursor-pointer p-1"
+            title="Delete User"
+          >
+            <Trash2 className="size-4.5" />
+          </button>
+        }
+        action={handleDeleteUser}
+      />
     </div>
   );
 };
 
-// Map extended columns from User Management mockup
+// Map columns to match User schema from the backend
 const columns: ColumnDef<IUser>[] = [
   {
     accessorKey: "name",
     header: "User",
     cell: ({ row }) => {
       const item = row.original;
-      const isDemo = item?.email?.includes("example.com") || !item?.email;
-      const fullName = `${item?.firstName || ""} ${item?.lastName || ""}`.trim() || "User";
-      // In mockup 1, names are Amara Okonkwo, UAE location is Nigeria, id SN-88219 is U-4821
-      const displayName = isDemo ? "Amara Okonkwo" : fullName;
-      const displayId = isDemo ? "U-4821" : `U-48${item?._id || ""}`;
+      const displayName = item?.fullName || item?.email || "User";
+      const displayId = `U-48${item?._id || ""}`;
 
       return (
         <div className="flex items-center gap-3 py-1 text-left">
-          {/* Circular avatar badge */}
+          {/* Circular initials avatar badge */}
           <div className="size-9 rounded-full bg-[#00ADEF]/10 text-[#00ADEF] flex items-center justify-center font-bold text-xs select-none shrink-0 border border-[#00ADEF]/20">
             {getInitials(displayName)}
           </div>
@@ -58,7 +84,7 @@ const columns: ColumnDef<IUser>[] = [
             <span className="font-semibold text-white text-[13px] tracking-tight leading-none truncate">
               {displayName}
             </span>
-            <span className="text-[10px] text-zinc-500 font-semibold leading-none mt-0.5">
+            <span className="text-[10px] text-zinc-550 font-semibold leading-none mt-0.5">
               {displayId}
             </span>
           </div>
@@ -71,9 +97,8 @@ const columns: ColumnDef<IUser>[] = [
     header: "Contact",
     cell: ({ row }) => {
       const item = row.original;
-      const isDemo = item?.email?.includes("example.com") || !item?.email;
-      const displayEmail = isDemo ? "amara.o@gmail.com" : item?.email;
-      const displayPhone = isDemo ? "+234 801 234 5678" : "+234 801 234 5678";
+      const displayEmail = item?.email;
+      const displayPhone = item?.phoneNumber || "N/A";
       return (
         <div className="flex flex-col gap-0.5 text-left text-zinc-350">
           <span className="text-[13px] tracking-tight leading-none">
@@ -88,78 +113,58 @@ const columns: ColumnDef<IUser>[] = [
   },
   {
     id: "country",
-    header: "Country",
+    header: "Country / Location",
     cell: ({ row }) => {
       const item = row.original;
-      const isDemo = item?.email?.includes("example.com") || !item?.email;
-      const location = isDemo ? "Nigeria" : (item?.location || "Nigeria");
-      const isUAE = location.toLowerCase().includes("uae") || location.toLowerCase().includes("dubai") || location.toLowerCase().includes("abu dhabi") || location.toLowerCase().includes("sharjah") || location.toLowerCase().includes("ajman") || location.toLowerCase().includes("fujairah") || location.toLowerCase().includes("ras al khaimah") || location.toLowerCase().includes("umm al quwain");
+      const location = item?.address || "N/A";
+      const isUAE = location.toLowerCase().includes("uae") || location.toLowerCase().includes("dubai");
       const flag = isUAE ? "🇦🇪" : "🇳🇬";
-      const countryName = isUAE ? "UAE" : "Nigeria";
       return (
         <div className="flex items-center gap-1.5 text-zinc-350 select-none text-left">
           <span className="text-base leading-none">{flag}</span>
-          <span className="text-[13px]">{countryName}</span>
+          <span className="text-[13px] truncate max-w-[120px]">{location}</span>
         </div>
       );
     },
   },
   {
     id: "kyc",
-    header: "KYC",
+    header: "KYC Status",
     cell: ({ row }) => {
-      const index = row.index;
       const item = row.original;
-      const isDemo = item?.email?.includes("example.com") || !item?.email;
+      const rawKyc = item?.kycStatus || "unverified";
+      const kycStatus = rawKyc.charAt(0).toUpperCase() + rawKyc.slice(1);
 
-      let kycStatus: "Approved" | "Pending" | "Rejected" = "Approved";
-      if (isDemo) {
-        if (index === 1 || index === 4) kycStatus = "Pending";
-        else if (index === 7 || index >= 9) kycStatus = "Rejected";
-      } else {
-        kycStatus = item?.isVerified ? "Approved" : "Pending";
-      }
-
-      const colorMap = {
+      const colorMap: Record<string, string> = {
         Approved: "text-emerald-500",
         Pending: "text-amber-500",
         Rejected: "text-[#ff3b30]",
+        Unverified: "text-zinc-400",
       };
 
       return (
         <div className="text-left font-semibold text-[13px] select-none">
-          <span className={colorMap[kycStatus]}>{kycStatus}</span>
+          <span className={colorMap[kycStatus] || "text-zinc-400"}>{kycStatus}</span>
         </div>
       );
     },
   },
   {
     id: "plan",
-    header: "Plan",
+    header: "Plan / Role",
     cell: ({ row }) => {
-      const index = row.index;
       const item = row.original;
-      const isDemo = item?.email?.includes("example.com") || !item?.email;
-
-      let plan: "Plus" | "Free" | "Family" | "Community" = "Plus";
-      if (isDemo) {
-        if (index === 1 || index === 4) plan = "Free";
-        else if (index === 2 || index === 5 || index === 6 || index === 8) plan = "Family";
-        else if (index === 7 || index >= 9) plan = "Community";
-      } else {
-        plan = item?.role === "Admin" ? "Plus" : "Free";
-      }
+      const isAdmin = item?.role === "admin";
+      const planName = isAdmin ? "Admin" : "User";
 
       const colorMap = {
-        Plus: "text-purple-400",
-        Free: "text-[#64748b]",
-        Family: "text-blue-400",
-        Community: "text-cyan-400",
+        Admin: "text-purple-400",
+        User: "text-[#64748b]",
       };
 
       return (
         <div className="text-left font-semibold text-[13px] select-none">
-          <span className={colorMap[plan]}>{plan}</span>
+          <span className={colorMap[planName]}>{planName}</span>
         </div>
       );
     },
@@ -169,8 +174,8 @@ const columns: ColumnDef<IUser>[] = [
     header: "Contributions",
     cell: () => {
       return (
-        <div className="text-left text-zinc-300 text-[13px] font-semibold select-none">
-          $12,400
+        <div className="text-left text-zinc-500 text-[13px] font-semibold select-none">
+          N/A
         </div>
       );
     },
@@ -180,24 +185,18 @@ const columns: ColumnDef<IUser>[] = [
     header: "Received",
     cell: () => {
       return (
-        <div className="text-left text-emerald-400 text-[13px] font-bold select-none">
-          $9,800
+        <div className="text-left text-zinc-500 text-[13px] font-semibold select-none">
+          N/A
         </div>
       );
     },
   },
   {
-    accessorKey: "isBlocked",
+    accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
       const item = row.original;
-      const index = row.index;
-      const isDemo = item?.email?.includes("example.com") || !item?.email;
-
-      let isSuspended = item?.isBlocked;
-      if (isDemo) {
-        isSuspended = index === 5 || index === 8;
-      }
+      const isSuspended = item?.status === "restricted";
       const statusText = isSuspended ? "Suspended" : "Active";
 
       return (

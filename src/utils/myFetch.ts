@@ -38,7 +38,7 @@ export const myFetch = async (
     tags,
     token,
     headers = {},
-    cache = "force-cache",
+    cache = "no-store",
   }: FetchOptions = {}
 ): Promise<FetchResponse> => {
   const accessToken = token || (await getToken());
@@ -64,7 +64,7 @@ export const myFetch = async (
       headers: reqHeaders,
       ...(hasBody && { body: isFormData ? body : JSON.stringify(body) }),
       ...(tags && { next: { tags } }),
-      ...(!(method === "GET") ? { cache: "no-store" } : { cache: cache }),
+      cache: "no-store",
     });
 
     status = response.status;

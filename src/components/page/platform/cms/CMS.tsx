@@ -11,7 +11,6 @@ import {
   Pencil,
   Trash2,
   Save,
-  X,
   CheckCircle2,
 } from "lucide-react";
 import {
@@ -421,7 +420,7 @@ const CMS = () => {
               {/* Header inside right card */}
               <div className="flex justify-between items-center select-none border-b border-[#1b1e25]/60 pb-4">
                 <span className="text-sm font-bold text-white tracking-wide">
-                  FAQ's
+                  FAQ&apos;s
                 </span>
                 <button
                   onClick={handleOpenCreateFaq}

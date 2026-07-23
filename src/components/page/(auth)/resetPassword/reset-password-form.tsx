@@ -1,5 +1,6 @@
 "use client";
 
+import { myFetch } from "@/utils/myFetch";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,14 +62,24 @@ export function ResetPasswordForm({
     toast.loading("Resetting password...", {
       id: "reset-password-toast",
     });
-    console.log(values, token);
 
     try {
-      //! perform your api call here...
-      toast.success("Password reset successfully", {
-        id: "reset-password-toast",
+      const res = await myFetch(`/auth/reset-password?token=${token}`, {
+        method: "POST",
+        body: {
+          newPassword: values.newPassword,
+          confirmPassword: values.confirmPassword,
+        },
       });
-      router.push(`/login`);
+
+      if (res?.success) {
+        toast.success(res?.message || "Password reset successfully", {
+          id: "reset-password-toast",
+        });
+        router.push(`/login`);
+      } else {
+        toast.error(res?.message || "Failed to reset password", { id: "reset-password-toast" });
+      }
     } catch (error: unknown) {
       console.log(error);
       toast.error("Failed to reset password", { id: "reset-password-toast" });

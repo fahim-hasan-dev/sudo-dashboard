@@ -59,14 +59,23 @@ export function OtpVerifyForm({
       oneTimeCode: values.oneTimeCode,
       email,
     };
-    console.log(payload);
 
     try {
-      //! perform your api call here...
-      toast.success("OTP verified successfully", { id: "verify-otp-toast" });
-      router.push(`/reset-password?auth=demoAuthToken`);
+      const res = await myFetch("/auth/verify-account", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (res?.success) {
+        toast.success(res?.message || "OTP verified successfully", { id: "verify-otp-toast" });
+        const token = res.data?.token;
+        router.push(`/reset-password?auth=${token}`);
+      } else {
+        toast.error(res?.message || "Verification failed", { id: "verify-otp-toast" });
+      }
     } catch (error: unknown) {
       console.log(error);
+      toast.error("An error occurred during verification", { id: "verify-otp-toast" });
     }
   };
 

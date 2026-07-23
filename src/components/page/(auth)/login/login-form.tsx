@@ -17,6 +17,8 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { useRouter, useSearchParams } from "next/navigation";
+import { myFetch } from "@/utils/myFetch";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 export function LoginForm({
   className,
@@ -25,6 +27,7 @@ export function LoginForm({
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const router = useRouter();
   const redirect = useSearchParams().get("redirect");
+  const { setToken, setUser } = useAuthContext();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     toast.loading("Logging in...", {
@@ -36,14 +39,24 @@ export function LoginForm({
       email: formData.get("email"),
       password: formData.get("password"),
     };
-    console.log(payload);
 
     try {
-      //! perform your api call here..
-      toast.success("Login successful", { id: "login" });
-      router.push(redirect || "/");
+      const res = await myFetch("/auth/login", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (res?.success) {
+        toast.success(res?.message || "Login successful", { id: "login" });
+        setToken(res.data?.accessToken);
+        setUser(JSON.stringify(res.data?.userInfo));
+        router.push(redirect || "/");
+      } else {
+        toast.error(res?.message || "Login failed", { id: "login" });
+      }
     } catch (error: unknown) {
       console.log("Error fetching data:", error);
+      toast.error("An error occurred during login", { id: "login" });
     }
   };
 

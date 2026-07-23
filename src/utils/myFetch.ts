@@ -3,6 +3,8 @@
 
 import { config } from "@/config/env-config";
 import { getToken } from "./get-token";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export interface FetchResponse {
   success: boolean;
@@ -51,6 +53,11 @@ export const myFetch = async (
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   };
 
+  let shouldRedirect = false;
+  let isOk = false;
+  let status = 200;
+  let resData: any = null;
+
   try {
     const response = await fetch(`${config.baseURL}${url}`, {
       method,
@@ -60,24 +67,22 @@ export const myFetch = async (
       ...(!(method === "GET") ? { cache: "no-store" } : { cache: cache }),
     });
 
-    const data = await response.json();
+    status = response.status;
+    isOk = response.ok;
+    resData = await response.json();
 
-    if (response.ok) {
-      return {
-        success: data?.success ?? true,
-        message: data?.message,
-        data: data?.data,
-        pagination: data?.pagination,
-        error: null,
-      };
+    if (!isOk) {
+      if (status === 401 && resData?.message === "Access Token has expired") {
+        shouldRedirect = true;
+        try {
+          const cookieStore = await cookies();
+          cookieStore.delete("accessToken");
+          cookieStore.delete("user");
+        } catch (cookieError) {
+          console.error("Failed to delete cookies on server:", cookieError);
+        }
+      }
     }
-
-    return {
-      success: false,
-      message: data?.message,
-      data: null,
-      error: data?.errorMessages || "Request failed",
-    };
   } catch (error) {
     return {
       success: false,
@@ -86,4 +91,25 @@ export const myFetch = async (
       error: error instanceof Error ? error.message : "Unknown error",
     };
   }
+
+  if (shouldRedirect) {
+    redirect("/login");
+  }
+
+  if (isOk) {
+    return {
+      success: resData?.success ?? true,
+      message: resData?.message,
+      data: resData?.data,
+      pagination: resData?.pagination,
+      error: null,
+    };
+  }
+
+  return {
+    success: false,
+    message: resData?.message,
+    data: null,
+    error: resData?.errorMessages || "Request failed",
+  };
 };

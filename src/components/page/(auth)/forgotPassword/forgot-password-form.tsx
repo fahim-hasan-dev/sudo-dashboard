@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { myFetch } from "@/utils/myFetch";
 
 export function ForgotPasswordForm({
   className,
@@ -27,17 +28,26 @@ export function ForgotPasswordForm({
     });
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const email = formData.get("email");
     const payload = {
-      email: formData.get("email"),
+      email,
     };
-    console.log(payload);
 
     try {
-      //! perform your api call here...
-      toast.success("OTP sent to your email", { id: "forgot-password-toast" });
-      router.push(`/otp-verify?email=${payload.email}`);
+      const res = await myFetch("/auth/forget-password", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (res?.success) {
+        toast.success(res?.message || "OTP sent to your email", { id: "forgot-password-toast" });
+        router.push(`/otp-verify?email=${email}`);
+      } else {
+        toast.error(res?.message || "Failed to send OTP", { id: "forgot-password-toast" });
+      }
     } catch (error: unknown) {
       console.log("Error fetching data:", error);
+      toast.error("An error occurred", { id: "forgot-password-toast" });
     }
   };
 
